@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Calendar, TrendingUp, Clock, MapPin, Building, Users } from 'lucide-react'
+import Image from 'next/image'
+import { TrendingUp, Building, Users } from 'lucide-react'
 import styles from './page.module.css'
 import DashboardReminders from '@/components/admin/DashboardReminders'
 import prisma from '@/lib/prisma'
@@ -178,8 +179,8 @@ export default async function AdminDashboard({
             ) : (
               brokersRanking.map((broker, index) => (
                 <div key={broker.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', flexShrink: 0, overflow: 'hidden' }}>
-                    {broker.avatarUrl ? <img src={broker.avatarUrl} alt={broker.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (index + 1)}
+                  <div style={{ position: 'relative', width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', flexShrink: 0, overflow: 'hidden' }}>
+                    {broker.avatarUrl ? <Image src={broker.avatarUrl} alt={broker.name} fill unoptimized style={{ objectFit: 'cover' }} /> : (index + 1)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Bell, Settings, UserPlus, DollarSign, Key, User } from 'lucide-react'
+import { PlusCircle, Bell, UserPlus, DollarSign, Key, User } from 'lucide-react'
 import styles from './RightSidebar.module.css'
 import { getRecentNotifications, NotificationItem } from '@/app/actions/notifications'
 

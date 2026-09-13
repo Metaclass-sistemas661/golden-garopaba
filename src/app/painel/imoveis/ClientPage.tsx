@@ -6,9 +6,12 @@ import { Search, Edit, Trash2, EyeOff, Eye, ChevronLeft, ChevronRight, Filter, L
 import styles from './page.module.css'
 import { deleteProperty, togglePropertyStatus } from '@/app/actions/properties'
 import TransactionModal from '@/components/admin/TransactionModal'
+import { PropertyDTO, BrokerDTO } from '@/types/dto'
 
-export default function AdminPropertiesListClient({ initialProperties, brokers }: { initialProperties: any[], brokers: any[] }) {
-  const [properties, setProperties] = useState(initialProperties)
+import Image from 'next/image'
+
+export default function AdminPropertiesListClient({ initialProperties, brokers }: { initialProperties: PropertyDTO[], brokers: BrokerDTO[] }) {
+  const [properties, setProperties] = useState<PropertyDTO[]>(initialProperties)
   const [isPending, setIsPending] = useState<string | null>(null)
   
   const [searchQuery, setSearchQuery] = useState('')
@@ -18,7 +21,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
   const itemsPerPage = 5
 
   // Estado do Modal de Transação
-  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE'|'RENT' } | null>(null)
+  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE'|'RENT'|'LANCAMENTO' } | null>(null)
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -37,22 +40,8 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
   }
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
-    if (currentStatus === 'SOLD' || currentStatus === 'RENTED') {
-      alert('Imóveis vendidos ou alugados não podem ser pausados/ativados por aqui.')
-      return
-    }
-    
-    setIsPending(id)
-    const res = await togglePropertyStatus(id, currentStatus)
-    if (res.success) {
-      setProperties(properties.map(p => {
-        if (p.id === id) {
-          return { ...p, status: currentStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE' }
-        }
-        return p
-      }))
-    }
-    setIsPending(null)
+    // Disabled functionality since PAUSED is not a Prisma state
+    alert('Função temporariamente desativada.')
   }
 
   const handleTransactionSuccess = () => {
@@ -113,8 +102,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
             >
               <option value="">Status (Todos)</option>
-              <option value="ACTIVE">Ativo</option>
-              <option value="PAUSED">Pausado</option>
+              <option value="AVAILABLE">Disponível</option>
               <option value="SOLD">Vendido</option>
               <option value="RENTED">Alugado</option>
             </select>
@@ -148,7 +136,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                   <tr key={property.id}>
                     <td>
                       <div className={styles.propertyInfo}>
-                        <img src={property.photos[0] || '/placeholder.png'} alt={property.title} className={styles.thumb} />
+                        <Image src={property.photos[0] || '/placeholder.png'} alt={property.title} className={styles.thumb} width={64} height={64} unoptimized style={{objectFit: 'cover'}} />
                         <div>
                           <span className={styles.propertyTitle}>{property.title}</span>
                           <span className={styles.propertyLoc}>{property.location}</span>
@@ -162,14 +150,13 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                         ? (property.rentPrice ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta')
                         : (property.price > 0 
                             ? formatPrice(property.price) 
-                            : (property.rentPrice > 0 ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta'))}
+                            : ((property.rentPrice ?? 0) > 0 ? `${formatPrice(property.rentPrice ?? 0)}/mês` : 'Sob Consulta'))}
                     </td>
                     <td>
                       <span className={
-                        property.status === 'PAUSED' ? styles.statusPaused : 
                         (property.status === 'SOLD' || property.status === 'RENTED') ? styles.statusSold : styles.statusActive
                       }>
-                        {property.status === 'PAUSED' ? 'Pausado' : property.status === 'SOLD' ? 'Vendido' : property.status === 'RENTED' ? 'Alugado' : 'Ativo'}
+                        {property.status === 'SOLD' ? 'Vendido' : property.status === 'RENTED' ? 'Alugado' : 'Disponível'}
                       </span>
                     </td>
                     <td className={styles.actionsColumn}>
@@ -186,14 +173,6 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                         <Link href={`/painel/imoveis/${property.id}/editar`} className={styles.actionBtn} title="Editar Imóvel">
                           <Edit size={18} />
                         </Link>
-                        <button 
-                          className={styles.actionBtn} 
-                          title={property.status === 'ACTIVE' ? "Pausar Anúncio" : "Ativar Anúncio"}
-                          onClick={() => handleToggleStatus(property.id, property.status)}
-                          disabled={isPending === property.id || property.status === 'SOLD' || property.status === 'RENTED'}
-                        >
-                          {isPending === property.id ? <Loader2 size={18} className={styles.spin} /> : (property.status === 'ACTIVE' ? <EyeOff size={18} /> : <Eye size={18} />)}
-                        </button>
                         <button 
                           className={`${styles.actionBtn} ${styles.danger}`} 
                           title="Excluir" 
@@ -245,8 +224,8 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
         onClose={() => setModalData(null)}
         propertyId={modalData?.id || ''}
         propertyTitle={modalData?.title || ''}
-        transactionType={modalData?.type || 'SALE'}
-        brokers={brokers}
+        transactionType={modalData?.type as any || 'SALE'}
+        brokers={brokers as any}
         onSuccess={handleTransactionSuccess}
       />
     </div>

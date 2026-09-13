@@ -3,7 +3,29 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
-export async function saveBroker(data: any, isEdit: boolean, id?: string) {
+export interface BrokerPayload {
+  fullName: string;
+  displayName: string;
+  creci: string;
+  document?: string | null;
+  birthDate?: string | null;
+  email: string;
+  whatsapp: string;
+  phoneAlt?: string | null;
+  address?: string | null;
+  specialty: string;
+  commissionPercentageSale?: number | null;
+  commissionPercentageRent?: number | null;
+  salesGoalQuarterly?: number | null;
+  status: string;
+  hiredAt?: string | null;
+  instagramUrl?: string | null;
+  linkedinUrl?: string | null;
+  youtubeUrl?: string | null;
+  avatarUrl?: string | null;
+}
+
+export async function saveBroker(data: BrokerPayload, isEdit: boolean, id?: string) {
   try {
     const payload = {
       fullName: data.fullName,
@@ -19,7 +41,7 @@ export async function saveBroker(data: any, isEdit: boolean, id?: string) {
       commissionPercentageSale: Number(data.commissionPercentageSale || 0),
       commissionPercentageRent: Number(data.commissionPercentageRent || 0),
       salesGoalQuarterly: data.salesGoalQuarterly ? Number(data.salesGoalQuarterly) : null,
-      status: data.status || 'ACTIVE',
+      status: (data.status || 'ACTIVE') as import('@prisma/client').BrokerStatus,
       hiredAt: data.hiredAt ? new Date(data.hiredAt) : null,
       instagramUrl: data.instagramUrl || null,
       linkedinUrl: data.linkedinUrl || null,
@@ -40,12 +62,12 @@ export async function saveBroker(data: any, isEdit: boolean, id?: string) {
     
     revalidatePath('/painel/corretores')
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error('=== ERRO DETALHADO AO SALVAR CORRETOR ===')
-    console.error('Mensagem:', error?.message)
-    console.error('Codigo:', error?.code)
-    console.error('Erro completo:', error)
-    return { success: false, error: error?.message || 'Erro interno ao salvar no banco.' }
+    console.error('Mensagem:', err?.message)
+    console.error('Erro completo:', err)
+    return { success: false, error: err?.message || 'Erro interno ao salvar no banco.' }
   }
 }
 
@@ -54,7 +76,7 @@ export async function deleteBroker(id: string) {
     await prisma.broker.delete({ where: { id } })
     revalidatePath('/painel/corretores')
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false }
   }
 }
@@ -72,7 +94,7 @@ export async function toggleBrokerStatus(id: string, currentStatus: string) {
     })
     revalidatePath('/painel/corretores')
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false }
   }
 }

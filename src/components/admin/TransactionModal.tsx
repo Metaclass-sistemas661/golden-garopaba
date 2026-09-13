@@ -57,7 +57,7 @@ export default function TransactionModal({ propertyId, propertyTitle, transactio
 
   // Máscara monetária simples
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '')
+    const value = e.target.value.replace(/\D/g, '')
     if (value === '') {
       setAmount('')
       return

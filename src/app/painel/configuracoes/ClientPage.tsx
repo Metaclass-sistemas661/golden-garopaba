@@ -7,7 +7,7 @@ import { updateSettings } from '@/app/actions/settings'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
-export default function ClientPage({ initialSettings }: { initialSettings: any }) {
+export default function ClientPage({ initialSettings }: { initialSettings: import('@prisma/client').SystemSettings | null }) {
   const [activeTab, setActiveTab] = useState('geral')
   const [copied, setCopied] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -157,9 +157,9 @@ export default function ClientPage({ initialSettings }: { initialSettings: any }
               <h2 className={styles.tabTitle}>Dados da Imobiliária</h2>
               
               <div className={styles.logoSection}>
-                <div className={styles.logoPreview}>
+                <div className={styles.logoPreview} style={{ position: 'relative' }}>
                   {logoUrl ? (
-                    <img src={logoUrl} alt="Logo Oficial" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <Image src={logoUrl} alt="Logo Oficial" fill unoptimized style={{ objectFit: 'contain' }} />
                   ) : (
                     <Building2 size={48} color="#94a3b8" />
                   )}
@@ -214,7 +214,7 @@ export default function ClientPage({ initialSettings }: { initialSettings: any }
                   <input type="color" value={colorPrimary} onChange={e => setColorPrimary(e.target.value)} className={styles.colorInput} />
                   <span className={styles.colorHex}>{colorPrimary.toUpperCase()}</span>
                 </div>
-                <p className={styles.helpText}>Essa é a cor principal que seus clientes verão nos botões de "Falar com Corretor".</p>
+                <p className={styles.helpText}>Essa é a cor principal que seus clientes verão nos botões de &quot;Falar com Corretor&quot;.</p>
               </div>
 
               <div className={styles.formGroup}>

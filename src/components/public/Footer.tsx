@@ -1,6 +1,7 @@
 "use client"
 
 import Link from 'next/link'
+import Image from 'next/image'
 import styles from './Footer.module.css'
 
 export default function Footer() {
@@ -34,7 +35,7 @@ export default function Footer() {
           
           <div className={styles.footerBrand} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <Link href="/" className={styles.footerLogo}>
-              <img src="/logo1.png" alt="Golden Garopaba" style={{ height: '150px', objectFit: 'contain' }} />
+              <Image src="/logo1.png" alt="Golden Garopaba" width={150} height={150} style={{ objectFit: 'contain' }} />
             </Link>
             <p>Redefinindo o alto padrão no litoral catarinense. Inteligência de mercado, curadoria exclusiva e discrição absoluta para investidores exigentes.</p>
           </div>

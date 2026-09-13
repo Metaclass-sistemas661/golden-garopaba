@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import styles from './Header.module.css'
 import { getSettings } from '@/app/actions/settings'
 import { ChevronDown } from 'lucide-react'
 import MobileMenu from './MobileMenu'
 
 export default async function Header() {
-  const settings = await getSettings()
+  // Settings podem ser buscadas se necessário
 
   return (
     <header className={styles.header}>
@@ -13,7 +14,7 @@ export default async function Header() {
         {/* Left: Logo */}
         <div className={styles.logoContainer}>
           <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo1.png" alt="Golden Garopaba" className={styles.logoImg} />
+            <Image src="/logo1.png" alt="Golden Garopaba" className={styles.logoImg} width={150} height={50} />
           </Link>
         </div>
         

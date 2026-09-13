@@ -1,4 +1,3 @@
-import AdminHeader from '@/components/admin/AdminHeader'
 import Sidebar from '@/components/admin/Sidebar'
 import RightSidebar from '@/components/admin/RightSidebar'
 import styles from './layout.module.css'

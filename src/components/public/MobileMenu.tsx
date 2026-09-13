@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react'
 import styles from './MobileMenu.module.css'
 
@@ -36,7 +37,7 @@ export default function MobileMenu() {
       {isOpen && (
         <div className={styles.overlay}>
           <div className={styles.menuHeader}>
-            <img src="/logo1.png" alt="Golden Garopaba" className={styles.menuLogo} />
+            <Image src="/logo1.png" alt="Golden Garopaba" className={styles.menuLogo} width={150} height={50} />
             <button 
               className={styles.closeBtn} 
               onClick={closeMenu}

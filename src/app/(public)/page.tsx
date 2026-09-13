@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import prisma from '@/lib/prisma'
 import HomeClient from './HomeClient'
+import { serializeProperty } from '@/utils/serializers'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,17 +18,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   })
   
-  const serializedProperties = properties.map(p => ({
-    ...p,
-    price: p.price ? parseFloat(p.price.toString()) : 0,
-    rentPrice: p.rentPrice ? parseFloat(p.rentPrice.toString()) : null,
-    condoPrice: p.condoPrice ? parseFloat(p.condoPrice.toString()) : null,
-    iptuPrice: p.iptuPrice ? parseFloat(p.iptuPrice.toString()) : null,
-    areaTotal: p.areaTotal ? parseFloat(p.areaTotal.toString()) : null,
-    areaUseful: p.areaUseful ? parseFloat(p.areaUseful.toString()) : null,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }))
+  const serializedProperties = properties.map(serializeProperty)
 
   return <HomeClient featuredProperties={serializedProperties} />
 }

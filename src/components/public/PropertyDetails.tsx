@@ -5,10 +5,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Bed, Bath, Square, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
 import styles from './PropertyDetails.module.css'
+import { PropertyDTO } from '@/types/dto'
 
 interface PropertyDetailsProps {
-  property: any
-  similarProperties: any[]
+  property: PropertyDTO
+  similarProperties: PropertyDTO[]
 }
 
 export default function PropertyDetails({ property, similarProperties }: PropertyDetailsProps) {
@@ -37,7 +38,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   }
 
   const handleMap = () => {
-    window.open(`https://maps.google.com/?q=${encodeURIComponent(property.location)}`, '_blank')
+    window.open(`https://maps.google.com/?q=${encodeURIComponent(property.location || '')}`, '_blank')
   }
 
   const formatPrice = (value: number) => {
@@ -67,11 +68,12 @@ export default function PropertyDetails({ property, similarProperties }: Propert
       <section className={styles.gallerySection}>
         <div className={styles.galleryGrid}>
           {/* Foto Principal Esquerda */}
-          <div className={styles.mainPhotoWrapper} onClick={() => openGallery(0)} style={{cursor: 'pointer'}}>
-            <img 
+          <div className={styles.mainPhotoWrapper} onClick={() => openGallery(0)} style={{cursor: 'pointer', position: 'relative'}}>
+            <Image 
               src={property.photos[0] || '/placeholder.jpg'} 
               alt={property.title} 
               className={styles.mainPhoto}
+              fill unoptimized style={{ objectFit: 'cover' }}
             />
             {property.status !== 'AVAILABLE' && (
                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '3rem', letterSpacing: '4px', textTransform: 'uppercase', zIndex: 10 }}>
@@ -90,18 +92,20 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           
           {/* Fotos Menores Direita */}
           <div className={styles.sidePhotos}>
-            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(1)} style={{cursor: 'pointer'}}>
-              <img 
+            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(1)} style={{cursor: 'pointer', position: 'relative'}}>
+              <Image 
                 src={property.photos[1] || property.photos[0]} 
                 alt={`${property.title} - Foto 2`} 
                 className={styles.sidePhoto}
+                fill unoptimized style={{ objectFit: 'cover' }}
               />
             </div>
-            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(2)} style={{cursor: 'pointer'}}>
-              <img 
+            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(2)} style={{cursor: 'pointer', position: 'relative'}}>
+              <Image 
                 src={property.photos[2] || property.photos[0]} 
                 alt={`${property.title} - Foto 3`} 
                 className={styles.sidePhoto}
+                fill unoptimized style={{ objectFit: 'cover' }}
               />
               <div className={styles.viewMoreOverlay}>
                 <span>+ Ver mais</span>
@@ -146,17 +150,17 @@ export default function PropertyDetails({ property, similarProperties }: Propert
               </span>
               <h2 className={styles.price}>
                 {property.transactionType === 'RENT' 
-                  ? (property.rentPrice ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta')
-                  : (property.price > 0 
-                      ? formatPrice(property.price) 
-                      : (property.rentPrice > 0 ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta'))}
+                  ? (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta')
+                  : (Number(property.price) > 0 
+                      ? formatPrice(Number(property.price)) 
+                      : (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta'))}
               </h2>
               
               {(property.condoPrice || property.iptuPrice) && (
                 <div className={styles.additionalCosts}>
-                  {property.condoPrice ? <span>Condomínio: <strong>{formatPrice(property.condoPrice)}</strong></span> : null}
+                  {property.condoPrice ? <span>Condomínio: <strong>{formatPrice(Number(property.condoPrice))}</strong></span> : null}
                   {property.condoPrice && property.iptuPrice ? <span className={styles.costSeparator}>•</span> : null}
-                  {property.iptuPrice ? <span>IPTU: <strong>{formatPrice(property.iptuPrice)}</strong></span> : null}
+                  {property.iptuPrice ? <span>IPTU: <strong>{formatPrice(Number(property.iptuPrice))}</strong></span> : null}
                 </div>
               )}
             </div>
@@ -166,12 +170,12 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           <div className={styles.specsGrid}>
             <div className={styles.specItem}>
               <span className={styles.specLabel}>Área total</span>
-              <span className={styles.specValue}><Square size={18} /> {property.areaTotal || 0} m²</span>
+              <span className={styles.specValue}><Square size={18} /> {Number(property.areaTotal || 0)} m²</span>
             </div>
             {property.areaUseful && (
               <div className={styles.specItem}>
                 <span className={styles.specLabel}>Área útil</span>
-                <span className={styles.specValue}><Square size={18} /> {property.areaUseful} m²</span>
+                <span className={styles.specValue}><Square size={18} /> {Number(property.areaUseful)} m²</span>
               </div>
             )}
             <div className={styles.specItem}>
@@ -263,22 +267,22 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           <div className={styles.similarGrid}>
             {similarProperties.map(sim => (
               <Link href={`/imoveis/${sim.id}`} key={sim.id} className={styles.propertyCard}>
-                <div className={styles.cardImageWrapper}>
-                  <img src={sim.photos && sim.photos.length > 0 ? sim.photos[0] : '/placeholder.jpg'} alt={sim.title} />
+                <div className={styles.cardImageWrapper} style={{ position: 'relative' }}>
+                  <Image src={sim.photos && sim.photos.length > 0 ? sim.photos[0] : '/placeholder.jpg'} alt={sim.title} fill unoptimized style={{ objectFit: 'cover' }} />
                   <div className={styles.cardTag}>{sim.transactionType === 'SALE' ? 'Venda' : 'Aluguel'}</div>
                 </div>
                 <div className={styles.cardContent}>
                   <h4>{sim.title}</h4>
                   <p className={styles.cardLoc}>{sim.location}</p>
                   <div className={styles.cardFeatures}>
-                    <span>{sim.areaTotal || 0}m²</span>
+                    <span>{Number(sim.areaTotal || 0)}m²</span>
                     <span>{sim.bedrooms || 0} quartos</span>
                     <span>{sim.bathrooms || 0} banheiros</span>
                     <span>{sim.parkingSpaces || 0} vagas</span>
                   </div>
                   <div className={styles.cardPrice}>
                     {sim.transactionType === 'SALE' ? 'Comprar' : 'Alugar'}
-                    <strong>{formatPrice(sim.price)}</strong>
+                    <strong>{formatPrice(Number(sim.price))}</strong>
                   </div>
                 </div>
               </Link>
@@ -292,16 +296,17 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           <div className={styles.modalOverlay} onClick={closeGallery}></div>
           <button className={styles.closeBtn} onClick={closeGallery}><X size={32} /></button>
           
-          <div className={styles.modalContent}>
-            <button className={styles.navBtn} onClick={prevPhoto}><ChevronLeft size={36} /></button>
+          <div className={styles.modalContent} style={{ position: 'relative', width: '90vw', height: '90vh' }}>
+            <button className={styles.navBtn} onClick={prevPhoto} style={{ zIndex: 10 }}><ChevronLeft size={36} /></button>
             
-            <img 
+            <Image 
               src={property.photos[activePhotoIndex]} 
               alt={`Foto ${activePhotoIndex + 1}`} 
               className={styles.modalImg}
+              fill unoptimized style={{ objectFit: 'contain' }}
             />
             
-            <button className={styles.navBtn} onClick={nextPhoto}><ChevronRight size={36} /></button>
+            <button className={styles.navBtn} onClick={nextPhoto} style={{ zIndex: 10 }}><ChevronRight size={36} /></button>
           </div>
           
           <div className={styles.photoCounter}>

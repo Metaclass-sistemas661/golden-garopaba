@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, MapPin, Bed, Bath, Square, ArrowRight, ShieldCheck, TrendingUp, Key, Headphones, Star, BadgeCheck, Shield, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ArrowRight, Headphones, Star, BadgeCheck, Shield, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -13,11 +13,13 @@ import styles from './page.module.css'
 import CustomSelect from '@/components/public/CustomSelect'
 import TiltImage from "@/components/public/TiltImage"
 
+import { PropertyDTO } from '@/types/dto'
+
 // Registra o plugin de scroll
 gsap.registerPlugin(ScrollTrigger)
 
 interface HomeClientProps {
-  featuredProperties: any[]
+  featuredProperties: PropertyDTO[]
 }
 
 export default function HomeClient({ featuredProperties }: HomeClientProps) {
@@ -409,12 +411,14 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
           <div className={`${styles.propertyGrid} propertyGridRef`} ref={propertyGridRef}>
             {featuredProperties.map(property => (
               <Link href={`/imoveis/${property.id}`} key={property.id} className={`${styles.propertyCard} propertyCardRef`}>
-                <div className={styles.cardImageWrapper}>
-                  <img 
+                <div className={styles.cardImageWrapper} style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <Image 
                     src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.jpg'} 
                     alt={property.title} 
                     className={styles.cardImage} 
-                    style={{width:'100%', height:'100%', objectFit:'cover'}}
+                    fill
+                    unoptimized
+                    style={{objectFit:'cover'}}
                   />
                   <div className={styles.cardOverlay}></div>
                 </div>

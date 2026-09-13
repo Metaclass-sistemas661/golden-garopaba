@@ -4,7 +4,7 @@ export const formatCurrency = (val: string | number | undefined | null) => {
   if (val === undefined || val === null || val === '') return ''
   
   // Se for string, tenta limpar primeiro
-  let numericVal = typeof val === 'string' ? Number(val.replace(/\D/g, '')) / 100 : Number(val)
+  const numericVal = typeof val === 'string' ? Number(val.replace(/\D/g, '')) / 100 : Number(val)
   
   if (isNaN(numericVal)) return ''
   
@@ -12,7 +12,7 @@ export const formatCurrency = (val: string | number | undefined | null) => {
 }
 
 export const formatCurrencyInput = (value: string) => {
-  let v = value.replace(/\D/g, '')
+  const v = value.replace(/\D/g, '')
   if (v === '') return ''
   const numberValue = parseInt(v, 10) / 100
   return numberValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

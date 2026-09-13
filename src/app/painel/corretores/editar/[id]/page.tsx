@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import BrokerForm from '@/components/admin/BrokerForm'
+import { serializeBroker } from '@/utils/serializers'
 
 interface EditarCorretorProps {
   params: Promise<{
@@ -18,15 +19,7 @@ export default async function EditarCorretorPage({ params }: EditarCorretorProps
     notFound()
   }
 
-  // Converter Decimal e Date para format compatível com cliente
-  const safeBroker = {
-    ...broker,
-    commissionPercentageSale: Number(broker.commissionPercentageSale),
-    commissionPercentageRent: Number(broker.commissionPercentageRent),
-    salesGoalQuarterly: broker.salesGoalQuarterly ? Number(broker.salesGoalQuarterly) : null,
-    birthDate: broker.birthDate ? broker.birthDate.toISOString() : null,
-    hiredAt: broker.hiredAt ? broker.hiredAt.toISOString() : null,
-  }
+  const safeBroker = serializeBroker(broker)
 
   return <BrokerForm initialData={safeBroker} />
 }

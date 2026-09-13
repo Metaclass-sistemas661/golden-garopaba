@@ -2,6 +2,7 @@ import PropertyDetails from '@/components/public/PropertyDetails'
 import ViewTracker from '@/components/public/ViewTracker'
 import { notFound } from 'next/navigation'
 import prisma from '@/lib/prisma'
+import { serializeProperty } from '@/utils/serializers'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,18 +30,6 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
     orderBy: { createdAt: 'desc' }
   })
   
-  const serializeProperty = (p: any) => ({
-    ...p,
-    price: p.price ? parseFloat(p.price.toString()) : 0,
-    rentPrice: p.rentPrice ? parseFloat(p.rentPrice.toString()) : null,
-    condoPrice: p.condoPrice ? parseFloat(p.condoPrice.toString()) : null,
-    iptuPrice: p.iptuPrice ? parseFloat(p.iptuPrice.toString()) : null,
-    areaTotal: p.areaTotal ? parseFloat(p.areaTotal.toString()) : null,
-    areaUseful: p.areaUseful ? parseFloat(p.areaUseful.toString()) : null,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  })
-
   return (
     <>
       <ViewTracker propertyId={property.id} />

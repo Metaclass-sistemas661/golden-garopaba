@@ -50,8 +50,9 @@ export async function registerTransaction(data: {
     revalidatePath('/painel')
     
     return { success: true }
-  } catch (error: any) {
-    console.error('Erro ao registrar transação:', error)
-    return { success: false, error: error?.message || 'Erro interno.' }
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Erro ao registrar transação:', err)
+    return { success: false, error: err?.message || 'Erro interno.' }
   }
 }

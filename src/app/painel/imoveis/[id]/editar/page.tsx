@@ -1,6 +1,7 @@
 import PropertyForm from '@/components/admin/PropertyForm'
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { serializeProperty } from '@/utils/serializers'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,18 +16,7 @@ export default async function EditarImovel({ params }: { params: Promise<{ id: s
     notFound()
   }
 
-  // Serialização dos decimais e datas
-  const serializedProperty = {
-    ...property,
-    price: property.price ? parseFloat(property.price.toString()) : 0,
-    rentPrice: property.rentPrice ? parseFloat(property.rentPrice.toString()) : null,
-    condoPrice: property.condoPrice ? parseFloat(property.condoPrice.toString()) : null,
-    iptuPrice: property.iptuPrice ? parseFloat(property.iptuPrice.toString()) : null,
-    areaTotal: property.areaTotal ? parseFloat(property.areaTotal.toString()) : null,
-    areaUseful: property.areaUseful ? parseFloat(property.areaUseful.toString()) : null,
-    createdAt: property.createdAt.toISOString(),
-    updatedAt: property.updatedAt.toISOString(),
-  }
+  const serialized = serializeProperty(property)
 
-  return <PropertyForm isEdit={true} initialData={serializedProperty} />
+  return <PropertyForm isEdit={true} initialData={serialized} />
 }

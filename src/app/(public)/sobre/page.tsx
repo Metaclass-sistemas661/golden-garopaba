@@ -1,7 +1,6 @@
 import { Metadata } from 'next'
 import styles from './Sobre.module.css'
 import Image from 'next/image'
-import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Sobre Nós | Golden Garopaba',
@@ -54,7 +53,7 @@ export default function SobrePage() {
               </p>
 
               <p className={styles.paragraph}>
-                "Nosso compromisso é entregar não apenas as chaves de uma propriedade extraordinária, mas a certeza de um negócio seguro e altamente rentável."
+                &quot;Nosso compromisso é entregar não apenas as chaves de uma propriedade extraordinária, mas a certeza de um negócio seguro e altamente rentável.&quot;
               </p>
 
             </div>

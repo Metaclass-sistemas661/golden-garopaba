@@ -5,13 +5,45 @@ import { revalidatePath } from 'next/cache'
 
 // Note: O upload das fotos será feito no lado do Cliente (Supabase JS) 
 // antes de chamar essa função, passando as URLs já prontas aqui.
-export async function saveProperty(data: any, isEdit: boolean, id?: string) {
+export interface PropertyPayload {
+  title: string;
+  code: string;
+  transactionType: string;
+  category: string;
+  propertyType: string;
+  location: string;
+  description: string;
+  price?: number | null;
+  rentPrice?: number | null;
+  condoPrice?: number | null;
+  iptuPrice?: number | null;
+  areaTotal?: number | null;
+  areaUseful?: number | null;
+  bedrooms?: number | null;
+  suites?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
+  features?: string[];
+  leisure?: string[];
+  security?: string[];
+  furniture?: string[];
+  environments?: string[];
+  infrastructure?: string[];
+  photos?: string[];
+  tourLink?: string | null;
+  videoLink?: string | null;
+  financeable?: boolean;
+  featured?: boolean;
+  status?: string;
+}
+
+export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
   try {
     const payload = {
       title: data.title,
       code: data.code,
-      transactionType: data.transactionType,
-      category: data.category,
+      transactionType: data.transactionType as import('@prisma/client').TransactionType,
+      category: data.category as import('@prisma/client').PropertyCategory,
       propertyType: data.propertyType,
       location: data.location,
       description: data.description,
@@ -36,7 +68,7 @@ export async function saveProperty(data: any, isEdit: boolean, id?: string) {
       videoLink: data.videoLink || null,
       financeable: data.financeable || false,
       featured: data.featured || false,
-      status: data.status || 'AVAILABLE'
+      status: (data.status || 'AVAILABLE') as import('@prisma/client').PropertyStatus
     }
 
     if (isEdit && id) {
@@ -56,13 +88,13 @@ export async function saveProperty(data: any, isEdit: boolean, id?: string) {
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Record<string, unknown> | Error;
     console.error('=== ERRO DETALHADO AO SALVAR IMOVEL ===')
-    console.error('Mensagem:', error?.message)
-    console.error('Codigo:', error?.code)
-    console.error('Meta:', JSON.stringify(error?.meta, null, 2))
-    console.error('Erro completo:', error)
-    const errorMessage = error?.message || 'Erro desconhecido'
+    console.error('Mensagem:', (err as Error)?.message)
+    console.error('Meta:', JSON.stringify((err as Record<string, unknown>)?.meta, null, 2))
+    console.error('Erro completo:', err)
+    const errorMessage = (err as Error)?.message || 'Erro desconhecido'
     return { success: false, error: errorMessage }
   }
 }
@@ -76,7 +108,7 @@ export async function deleteProperty(id: string) {
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false }
   }
 }
@@ -93,7 +125,7 @@ export async function togglePropertyStatus(id: string, currentStatus: string) {
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false }
   }
 }

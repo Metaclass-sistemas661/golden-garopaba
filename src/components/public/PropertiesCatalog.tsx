@@ -2,13 +2,15 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import styles from './PropertiesCatalog.module.css'
 import { MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown } from 'lucide-react'
 import FilterModal, { FilterState } from './FilterModal'
+import { PropertyDTO } from '@/types/dto'
 
 interface PropertiesCatalogProps {
   mode: 'SALE' | 'RENT' | 'LANCAMENTO'
-  initialProperties: any[]
+  initialProperties: PropertyDTO[]
 }
 
 export default function PropertiesCatalog({ mode, initialProperties }: PropertiesCatalogProps) {
@@ -95,7 +97,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
       const lowerTerm = filters.searchTerm.toLowerCase()
       result = result.filter(p => 
         p.title.toLowerCase().includes(lowerTerm) || 
-        p.location.toLowerCase().includes(lowerTerm)
+        (p.location || '').toLowerCase().includes(lowerTerm)
       )
     }
 
@@ -117,12 +119,12 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
     }
 
     // Filtros de Preço (agora são numéricos diretos)
-    if (filters.minPrice > 0) result = result.filter(p => p.price >= filters.minPrice)
-    if (filters.maxPrice < 20000000) result = result.filter(p => p.price <= filters.maxPrice)
+    if (filters.minPrice > 0) result = result.filter(p => Number(p.price) >= filters.minPrice)
+    if (filters.maxPrice < 20000000) result = result.filter(p => Number(p.price) <= filters.maxPrice)
 
     // Filtros de Área
-    if (filters.minArea) result = result.filter(p => (p.areaTotal || 0) >= parseInt(filters.minArea.replace(/\D/g, '')))
-    if (filters.maxArea) result = result.filter(p => (p.areaTotal || 0) <= parseInt(filters.maxArea.replace(/\D/g, '')))
+    if (filters.minArea) result = result.filter(p => Number(p.areaTotal || 0) >= parseInt(filters.minArea.replace(/\D/g, '')))
+    if (filters.maxArea) result = result.filter(p => Number(p.areaTotal || 0) <= parseInt(filters.maxArea.replace(/\D/g, '')))
 
     // Contadores
     if (filters.bedrooms) result = result.filter(p => (p.bedrooms || 0) >= filters.bedrooms!)
@@ -152,15 +154,15 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
 
     // Ordenação
     if (sortBy === 'price_asc') {
-      result.sort((a, b) => a.price - b.price)
+      result.sort((a, b) => Number(a.price) - Number(b.price))
     } else if (sortBy === 'price_desc') {
-      result.sort((a, b) => b.price - a.price)
+      result.sort((a, b) => Number(b.price) - Number(a.price))
     } else {
       result.sort((a, b) => (a.id > b.id ? -1 : 1))
     }
 
     return result
-  }, [mode, filters, sortBy])
+  }, [mode, filters, sortBy, initialProperties])
 
   // Lógica de Paginação
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage) || 1
@@ -258,11 +260,13 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
               {paginatedProperties.map(property => (
                 <Link href={`/imoveis/${property.id}`} key={property.id} className={styles.propertyCard}>
                   <div className={styles.cardImageWrapper}>
-                    <img 
+                    <Image 
                       src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.jpg'} 
                       alt={property.title} 
                       className={styles.cardImage}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      fill
+                      unoptimized
+                      style={{ objectFit: 'cover' }}
                     />
                     <div className={styles.cardTag}>{property.transactionType === 'SALE' ? 'Venda' : property.transactionType === 'RENT' ? 'Aluguel' : 'Lançamento'}</div>
                     {property.status !== 'AVAILABLE' && (
@@ -288,15 +292,15 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                       </div>
                       <div className={styles.featureItem}>
                         <Square size={16} />
-                        <span>{property.areaTotal || 0}m²</span>
+                        <span>{Number(property.areaTotal || 0)}m²</span>
                       </div>
                     </div>
                     <div className={styles.cardPrice}>
                       {property.transactionType === 'RENT' 
-                        ? (property.rentPrice ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta')
-                        : (property.price > 0 
-                            ? formatPrice(property.price) 
-                            : (property.rentPrice > 0 ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta'))}
+                        ? (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta')
+                        : (Number(property.price) > 0 
+                            ? formatPrice(Number(property.price)) 
+                            : (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta'))}
                     </div>
                   </div>
                 </Link>

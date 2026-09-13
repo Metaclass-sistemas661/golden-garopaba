@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, DollarSign, Target, Award, CheckCircle } from 'lucide-react'
+import { ArrowLeft, TrendingUp, DollarSign, Target, Award } from 'lucide-react'
 
 interface PerformanceProps {
   params: Promise<{

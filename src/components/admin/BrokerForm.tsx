@@ -4,14 +4,15 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Save, UserCircle2, Loader2, ChevronRight, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, UserCircle2, ChevronRight, ChevronLeft } from 'lucide-react'
 import styles from './BrokerForm.module.css'
 import { saveBroker } from '@/app/actions/brokers'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber } from '@/utils/mask'
+import { BrokerDTO } from '@/types/dto'
 
 interface BrokerFormProps {
-  initialData?: any
+  initialData?: BrokerDTO
 }
 
 export default function BrokerForm({ initialData }: BrokerFormProps) {
@@ -36,9 +37,9 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
   const [address, setAddress] = useState(initialData?.address || '')
   
   const [specialty, setSpecialty] = useState(initialData?.specialty || '')
-  const [commissionPercentageSale, setCommissionPercentageSale] = useState(initialData?.commissionPercentageSale ? formatCurrency(initialData.commissionPercentageSale) : '')
-  const [commissionPercentageRent, setCommissionPercentageRent] = useState(initialData?.commissionPercentageRent ? formatCurrency(initialData.commissionPercentageRent) : '')
-  const [salesGoalQuarterly, setSalesGoalQuarterly] = useState(initialData?.salesGoalQuarterly ? formatCurrency(initialData.salesGoalQuarterly) : '')
+  const [commissionPercentageSale, setCommissionPercentageSale] = useState(initialData?.commissionPercentageSale ? formatCurrency(Number(initialData.commissionPercentageSale)) : '')
+  const [commissionPercentageRent, setCommissionPercentageRent] = useState(initialData?.commissionPercentageRent ? formatCurrency(Number(initialData.commissionPercentageRent)) : '')
+  const [salesGoalQuarterly, setSalesGoalQuarterly] = useState(initialData?.salesGoalQuarterly ? formatCurrency(Number(initialData.salesGoalQuarterly)) : '')
   const [status, setStatus] = useState(initialData?.status || 'ACTIVE')
   const [hiredAt, setHiredAt] = useState(initialData?.hiredAt ? new Date(initialData.hiredAt).toISOString().split('T')[0] : '')
   
@@ -63,7 +64,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
     const filePath = `avatars/${fileName}`
 
-    const { error: uploadError, data } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('properties')
       .upload(filePath, avatarFile)
 
@@ -269,7 +270,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
                 </div>
                 <div className={styles.formGroup}>
                   <label>Status do Corretor</label>
-                  <select required value={status} onChange={e => setStatus(e.target.value)}>
+                  <select required value={status} onChange={e => setStatus(e.target.value as 'ACTIVE' | 'VACATION' | 'INACTIVE')}>
                     <option value="ACTIVE">Ativo - Com acesso ao sistema</option>
                     <option value="VACATION">Em Férias - Sem recebimento de leads</option>
                     <option value="INACTIVE">Inativo - Acesso revogado</option>

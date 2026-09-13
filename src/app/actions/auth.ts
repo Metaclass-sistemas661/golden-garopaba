@@ -72,7 +72,7 @@ export async function updatePassword(prevState: AuthState | undefined, formData:
   redirect('/login')
 }
 
-export async function logout(formData?: FormData) {
+export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')

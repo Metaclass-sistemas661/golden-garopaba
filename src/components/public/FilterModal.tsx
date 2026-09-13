@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { X, SlidersHorizontal, CalendarDays, Tag, Building2, ChevronDown, ChevronUp } from 'lucide-react'
 import styles from './FilterModal.module.css'
 
@@ -80,8 +80,7 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
       document.body.style.position = 'fixed';
       document.body.style.top = `-${window.scrollY}px`;
       document.body.style.width = '100%';
-      document.body.style.overflowY = 'scroll'; // Prevent layout shift
-      setLocalFilters(currentFilters);
+      document.body.style.overflowY = 'scroll';
     } else {
       const scrollY = document.body.style.top;
       document.body.style.position = '';
@@ -91,6 +90,13 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
       if (scrollY) {
         window.scrollTo(0, parseInt(scrollY || '0') * -1);
       }
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      setLocalFilters(currentFilters);
     }
   }, [isOpen, currentFilters])
 

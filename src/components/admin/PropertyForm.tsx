@@ -3,14 +3,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft, X } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft } from 'lucide-react'
 import styles from './PropertyForm.module.css'
 import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
+import { PropertyDTO } from '@/types/dto'
 
 interface PropertyFormProps {
-  initialData?: any;
+  initialData?: PropertyDTO;
   isEdit?: boolean;
 }
 
@@ -40,10 +42,10 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [selectedCategory, setSelectedCategory] = useState<'RESIDENTIAL'|'COMMERCIAL'|'RURAL'>(initialData?.category || 'RESIDENTIAL')
   const [selectedType, setSelectedType] = useState<string>(initialData?.propertyType || '')
   const [location, setLocation] = useState(initialData?.location || '')
-  const [price, setPrice] = useState(initialData?.price ? formatCurrency(initialData.price) : '')
-  const [rentPrice, setRentPrice] = useState(initialData?.rentPrice ? formatCurrency(initialData.rentPrice) : '')
-  const [condoPrice, setCondoPrice] = useState(initialData?.condoPrice ? formatCurrency(initialData.condoPrice) : '')
-  const [iptuPrice, setIptuPrice] = useState(initialData?.iptuPrice ? formatCurrency(initialData.iptuPrice) : '')
+  const [price, setPrice] = useState(initialData?.price ? formatCurrency(Number(initialData.price)) : '')
+  const [rentPrice, setRentPrice] = useState(initialData?.rentPrice ? formatCurrency(Number(initialData.rentPrice)) : '')
+  const [condoPrice, setCondoPrice] = useState(initialData?.condoPrice ? formatCurrency(Number(initialData.condoPrice)) : '')
+  const [iptuPrice, setIptuPrice] = useState(initialData?.iptuPrice ? formatCurrency(Number(initialData.iptuPrice)) : '')
   const [featured, setFeatured] = useState(initialData?.featured || false)
   
   // Tech details
@@ -222,7 +224,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 </div>
                 <div className={styles.formGroup}>
                   <label>Disponibilidade (Status)</label>
-                  <select value={status} onChange={e => setStatus(e.target.value)} required style={{ fontWeight: 'bold', color: status === 'AVAILABLE' ? '#10b981' : '#f59e0b' }}>
+                  <select value={status} onChange={e => setStatus(e.target.value as 'AVAILABLE' | 'SOLD' | 'RENTED')} required style={{ fontWeight: 'bold', color: status === 'AVAILABLE' ? '#10b981' : '#f59e0b' }}>
                     <option value="AVAILABLE">Disponível</option>
                     <option value="SOLD">Vendido</option>
                     <option value="RENTED">Alugado</option>
@@ -313,7 +315,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                     className={styles.editorTextarea}
                     contentEditable={true}
                     suppressContentEditableWarning={true}
-                    dangerouslySetInnerHTML={{ __html: descriptionRef.current }}
+                    dangerouslySetInnerHTML={{ __html: initialData?.description || '' }}
                     onInput={(e) => { descriptionRef.current = e.currentTarget.innerHTML }}
                   ></div>
                 </div>
@@ -476,7 +478,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 <div className={styles.photoPreviewGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
                   {photos.map((url: string, idx: number) => (
                     <div key={idx} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                      <img src={url} alt={`Foto ${idx}`} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
+                      <Image src={url} alt={`Foto ${idx}`} fill unoptimized style={{ objectFit: 'cover' }} />
                       <button 
                         type="button" 
                         onClick={() => removePhoto(url)} 

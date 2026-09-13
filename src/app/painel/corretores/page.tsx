@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Plus, Edit, Award, Target, UserCircle2 } from 'lucide-react'
+import { Edit, Award, Target, UserCircle2 } from 'lucide-react'
 import styles from './page.module.css'
 import prisma from '@/lib/prisma'
 

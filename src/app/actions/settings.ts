@@ -22,7 +22,7 @@ export async function getSettings() {
   }
 }
 
-export async function updateSettings(data: any) {
+export async function updateSettings(data: Partial<import('@prisma/client').SystemSettings> & Record<string, unknown>) {
   try {
     const payload = {
       companyName: data.companyName,
@@ -54,8 +54,9 @@ export async function updateSettings(data: any) {
     revalidatePath('/', 'layout')
     
     return { success: true }
-  } catch (error: any) {
-    console.error('Error updating settings:', error)
-    return { success: false, error: error.message || 'Erro ao salvar configurações.' }
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error updating settings:', err)
+    return { success: false, error: err.message || 'Erro ao salvar configurações.' }
   }
 }
