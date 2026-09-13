@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
 const prismaClientSingleton = () => {
-  let connectionString = process.env.DATABASE_URL
+  let connectionString = process.env.DATABASE_URL?.replace(/^"|"$/g, '') || ''
   if (connectionString && !connectionString.includes('sslmode=')) {
     connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require'
   }
