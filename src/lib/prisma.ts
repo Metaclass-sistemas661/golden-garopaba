@@ -3,14 +3,13 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 
 // ---------------------------------------------------------------------------
-// Environment validation — fail fast, never mask broken config
+// Environment validation — fail fast at RUNTIME, not at BUILD time
 // ---------------------------------------------------------------------------
 
 function getDatabaseUrl(): string {
   // Prefer DIRECT_URL (no pgbouncer) — correct for server apps with their own pool.
   // Fall back to DATABASE_URL for backwards compatibility.
   const raw = process.env.DIRECT_URL || process.env.DATABASE_URL
-  const source = process.env.DIRECT_URL ? 'DIRECT_URL' : 'DATABASE_URL'
 
   if (!raw) {
     throw new Error(
@@ -18,6 +17,8 @@ function getDatabaseUrl(): string {
       'Configure at least DATABASE_URL in apphosting.yaml → env or in your .env file.'
     )
   }
+
+  const source = process.env.DIRECT_URL ? 'DIRECT_URL' : 'DATABASE_URL'
 
   // Defense-in-depth: strip wrapping quotes that some secret managers inject
   const url = raw.replace(/^"|"$/g, '')
@@ -80,23 +81,29 @@ function createPool(connectionString: string): pg.Pool {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton pattern — one PrismaClient per process
+// Lazy singleton — PrismaClient is created on FIRST USE, not on import.
+// This prevents crashes during `next build` where DATABASE_URL is absent.
 // ---------------------------------------------------------------------------
 
-const prismaClientSingleton = () => {
+function createPrismaClient(): PrismaClient {
   const connectionString = getDatabaseUrl()
   const pool = createPool(connectionString)
   const adapter = new PrismaPg(pool)
-
   return new PrismaClient({ adapter })
 }
 
 declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
+  prismaGlobal: PrismaClient | undefined;
 } & typeof global;
 
-const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
+const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    // Lazily initialize on first property access
+    if (!globalThis.prismaGlobal) {
+      globalThis.prismaGlobal = createPrismaClient()
+    }
+    return Reflect.get(globalThis.prismaGlobal, prop)
+  },
+})
 
 export default prisma
-
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
