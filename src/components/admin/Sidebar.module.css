@@ -1,0 +1,128 @@
+.sidebar {
+  width: 250px;
+  background-color: #ffffff;
+  height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.logoSection {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logoMark {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  font-family: var(--font-secondary);
+}
+
+.logoText {
+  font-family: var(--font-secondary);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.collapseBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.collapseBtn:hover {
+  color: #0f172a;
+}
+
+.sidebar.collapsed .logoSection {
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.sidebar.collapsed .collapseBtn {
+  display: none; /* Pode esconder ou mostrar embaixo do logo, optamos por esconder no mobile/collapsed para visual mais limpo */
+}
+
+/* Mostrar collapseBtn no hover da sidebar mesmo collapsed, ou num footer */
+
+.nav {
+  flex: 1;
+  padding: 1.5rem 1rem;
+}
+
+.navList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  color: #64748b;
+  text-decoration: none;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.navLink.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.navIcon {
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .navLink {
+  justify-content: center;
+  padding: 0.85rem 0;
+}
+
+.footer {
+  padding: 1.5rem 1rem;
+  border-top: 1px solid #f1f5f9;
+}

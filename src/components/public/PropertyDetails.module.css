@@ -1,0 +1,683 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12rem 1.5rem 2rem; /* 12rem no topo para livrar o Header Fixo que foi aumentado */
+  font-family: var(--font-primary);
+}
+
+/* ================= 1. GALLERY ================= */
+.gallerySection {
+  margin-bottom: 3rem;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  height: 500px;
+}
+
+.mainPhotoWrapper {
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.mainPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.mainPhotoWrapper:hover .mainPhoto {
+  transform: scale(1.02);
+}
+
+.photoOverlayTags {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+}
+
+.overlayBtn {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.overlayBtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.sidePhotos {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.sidePhotoWrapper {
+  position: relative;
+  flex: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sidePhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.sidePhotoWrapper:hover .sidePhoto {
+  transform: scale(1.03);
+}
+
+.viewMoreOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.viewMoreOverlay:hover {
+  background: rgba(0,0,0,0.5);
+}
+
+
+/* ================= 2. CONTENT LAYOUT ================= */
+.contentLayout {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 4rem;
+}
+
+/* Lado Esquerdo */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-primary); /* Dourado */
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.location {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.codeTag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.iconBtn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.priceSection {
+  margin-bottom: 3rem;
+}
+
+.transactionType {
+  font-size: 1rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.price {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1;
+}
+
+.additionalCosts {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.costSeparator {
+  color: #cbd5e1;
+}
+
+.specsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 3rem;
+  overflow: hidden;
+}
+
+.specItem {
+  flex: 1 1 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid transparent;
+}
+
+.specItem:last-child {
+  border-right: none;
+}
+
+.specLabel {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.specValue {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b; /* Slate 800 */
+}
+
+.specValue svg {
+  color: var(--color-primary);
+}
+
+.descriptionSection h3, .amenitiesSection h3, .similarSection h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.descriptionText {
+  color: #475569;
+  line-height: 1.8;
+  font-size: 1.05rem;
+  margin-bottom: 3rem;
+}
+
+.descriptionText p {
+  margin-bottom: 1rem;
+}
+
+.amenitiesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+}
+
+.amenityItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.checkIcon {
+  color: var(--color-primary);
+}
+
+/* ================= 3. LADO DIREITO (STICKY) ================= */
+.rightColumn {
+  position: relative;
+}
+
+.stickySidebar {
+  position: sticky;
+  top: 100px; /* Offset to not touch the header */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.financableCard {
+  background: linear-gradient(145deg, rgba(201, 169, 110, 0.08), rgba(201, 169, 110, 0.02));
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  box-shadow: 0 4px 15px rgba(201, 169, 110, 0.08);
+  transition: all 0.3s ease;
+}
+
+.financableCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201, 169, 110, 0.15);
+  background: linear-gradient(145deg, rgba(201, 169, 110, 0.12), rgba(201, 169, 110, 0.04));
+}
+
+.financableIcon {
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(201, 169, 110, 0.3));
+}
+
+.financableText {
+  display: flex;
+  flex-direction: column;
+}
+
+.financableTitle {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.financableSubtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.contactCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  background: #fff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.contactCard h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 1rem;
+}
+
+.contactCard p {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.whatsappBtn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.whatsappBtn:hover {
+  opacity: 0.9;
+}
+
+
+/* ================= 4. SIMILAR PROPERTIES ================= */
+.similarSection {
+  margin-top: 2rem;
+}
+
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.propertyCard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  background: #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.propertyCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+.cardImageWrapper {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+.cardImageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardTag {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cardContent {
+  padding: 1.25rem;
+}
+
+.cardContent h4 {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.cardLoc {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.cardFeatures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: #555;
+  margin-bottom: 1.25rem;
+}
+
+.cardPrice {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.cardPrice strong {
+  font-size: 1.25rem;
+  color: #111;
+  margin-top: 0.2rem;
+}
+
+/* Responsividade Básica */
+@media (max-width: 1024px) {
+  .contentLayout {
+    grid-template-columns: 1fr;
+  }
+  
+  .stickySidebar {
+    position: static;
+  }
+  
+  .specsGrid {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .galleryGrid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .mainPhoto {
+    height: 300px;
+  }
+  .sidePhotos {
+    flex-direction: row;
+    height: 120px;
+  }
+  
+  /* Specs Grid: 3 colunas compactas no mobile */
+  .specsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    flex-direction: unset;
+  }
+  .specItem {
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 0.5rem;
+  }
+  .specItem:nth-child(3n) {
+    border-right: none;
+  }
+  .specItem:nth-last-child(-n+3) {
+    border-bottom: none;
+  }
+  .specLabel {
+    font-size: 0.75rem;
+  }
+  .specValue {
+    font-size: 0.95rem;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .price {
+    font-size: 1.8rem;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+
+  /* Gallery Modal no Mobile */
+  .modalContent {
+    padding: 0;
+    gap: 0;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navBtn {
+    position: absolute;
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+  }
+  
+  .navBtn:first-child {
+    left: 0.75rem;
+  }
+  
+  .navBtn:last-child {
+    right: 0.75rem;
+  }
+
+  .modalImg {
+    width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    padding: 0.5rem;
+  }
+
+  .closeBtn {
+    top: 1rem;
+    right: 1rem;
+    z-index: 4;
+  }
+
+  .photoCounter {
+    bottom: 1.5rem;
+    z-index: 4;
+  }
+}
+
+/* ================= 5. FAVORITE STATE ================= */
+.favoriteActive {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+  border-color: #fecaca !important;
+}
+
+/* ================= 6. FULLSCREEN GALLERY MODAL ================= */
+.galleryModal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.2s;
+}
+
+.closeBtn:hover {
+  transform: scale(1.1);
+}
+
+.modalContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 2rem;
+}
+
+.navBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.navBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.modalImg {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.photoCounter {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  z-index: 1;
+}

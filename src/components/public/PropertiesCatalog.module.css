@@ -1,0 +1,363 @@
+.catalogWrapper {
+  padding: 120px 2rem 5rem 2rem;
+  max-width: 100%; /* Ocupar a tela toda para caber as 4 colunas e a sidebar no canto */
+  margin: 0 auto;
+}
+
+.catalogHeader {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.catalogHeader h1 {
+  font-family: var(--font-secondary);
+  font-size: 3rem;
+  font-weight: 500;
+  color: #111;
+  margin-bottom: 0.5rem;
+}
+
+.catalogHeader p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.catalogLayout {
+  display: block; /* Removendo Grid de Sidebar */
+}
+
+/* ================= MAIN CONTENT ================= */
+.mainContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.resultsCountRow {
+  display: flex;
+}
+
+.controlsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.resultsCount {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #444;
+}
+
+.openFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background: #fff;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.openFilterBtn:hover {
+  border-color: #111;
+  background: #f9f9f9;
+}
+
+.filterBadge {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 0.25rem;
+}
+
+.sortContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.sortLabel {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.customSort {
+  position: relative;
+  width: 200px;
+}
+
+.sortSelected {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sortSelected:hover, .sortActive {
+  border-color: var(--color-primary);
+}
+
+.sortOptions {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 10;
+  animation: dropdownFade 0.2s ease-out;
+}
+
+.sortOption {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sortOption:hover {
+  background: #f8fafc;
+  color: var(--color-primary);
+}
+
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ================= GRID DE IMÓVEIS ================= */
+.propertyGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* Força 4 colunas lado a lado */
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.propertyCard {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.propertyCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+}
+
+.cardImageWrapper {
+  position: relative;
+  width: 100%;
+  height: 240px;
+}
+
+.cardImage {
+  object-fit: cover;
+}
+
+.cardTag {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(10, 10, 10, 0.8);
+  color: #fff;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+}
+
+.cardContent {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cardContent h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #111;
+}
+
+.cardLocation {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #777;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.cardFeatures {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #555;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.cardPrice {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-primary); /* Dourado */
+  margin-top: auto;
+}
+
+.emptyState {
+  padding: 5rem 0;
+  text-align: center;
+  color: #666;
+  font-size: 1.1rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.clearBtnAlt {
+  padding: 0.8rem 2rem;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ================= PAGINATION ================= */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.pageBtn {
+  background: #fff;
+  border: 1px solid #ddd;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #111;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #111;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageNumbers {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pageNumberBtn {
+  background: transparent;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pageNumberBtn:hover {
+  background: #f0f0f0;
+}
+
+.activePage {
+  background: #111 !important;
+  color: #fff !important;
+}
+
+/* ================= RESPONSIVO ================= */
+@media (max-width: 1600px) {
+  .propertyGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .propertyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .topBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .propertyGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .topBar h1 {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,134 @@
+.mobileMenuContainer {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobileMenuContainer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
+
+.hamburgerBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay {
+  position: absolute;
+  top: 60px; /* Logo abaixo do botão hamburger */
+  right: 0;
+  width: 250px; /* Largura compacta */
+  height: auto;
+  max-height: 80vh;
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.menuHeader {
+  display: none; /* Esconde logo e botão X, já que agora é um dropdown compacto */
+}
+
+.menuLogo {
+  height: 60px;
+  object-fit: contain;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  padding-left: 0;
+}
+
+.link {
+  font-size: 1.1rem;
+  color: white;
+  text-decoration: none;
+  font-family: var(--font-secondary);
+  font-weight: 300;
+  transition: opacity 0.3s;
+}
+
+.link:active {
+  opacity: 0.7;
+}
+
+.dropdownSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.dropdownBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  font-family: var(--font-secondary);
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.dropdownContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  margin-left: 0.3rem;
+}
+
+.subLink {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-family: var(--font-secondary);
+}
+
+.menuFooter {
+  margin-top: auto;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.ctaBtn {
+  background: var(--color-primary);
+  color: white;
+  padding: 1rem 1.2rem;
+  border-radius: 50px;
+  text-align: center;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}

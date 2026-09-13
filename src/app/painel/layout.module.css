@@ -1,0 +1,34 @@
+.adminLayout {
+  display: flex;
+  height: 100vh;
+  background-color: #f1f5f9; /* Slate 50 */
+  padding: 1rem;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  height: calc(100vh - 2rem);
+  overflow: hidden;
+}
+
+.contentArea {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Esconde barra no firefox */
+}
+
+.contentArea::-webkit-scrollbar {
+  display: none; /* Esconde barra no chrome/safari para visual mais limpo */
+}
+
+.contentArea::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* Header removido do flex padrão e integrado no Dashboard ou Sidebar para ficar mais limpo estilo SaaS */

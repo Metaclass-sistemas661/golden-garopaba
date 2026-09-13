@@ -1,0 +1,170 @@
+.header {
+  background: rgba(10, 10, 10, 0.75); /* Dark Glass para destacar o texto branco mesmo em seções claras */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Borda bem sutil para manter o luxo */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Sombra para separar o header da página */
+  padding: 0 2rem;
+  height: 85px;
+  position: fixed; /* Header fixo no scroll */
+  top: 2.5rem; /* Aumentado para dar o efeito de flutuação e descolar do teto */
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 4rem);
+  max-width: 1200px;
+  z-index: 9999; /* Z-index super alto para sobrepor todas as seções (como o GSAP) */
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.logoContainer, .ctaContainer {
+  flex: 1;
+}
+
+.ctaContainer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.logo {
+  font-family: var(--font-secondary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-primary); /* Logo Dourada */
+  text-decoration: none;
+  letter-spacing: -0.5px;
+  transition: opacity 0.3s ease;
+}
+
+.logo:hover {
+  opacity: 0.8;
+}
+
+.logoImg {
+  height: 75px;
+  object-fit: contain;
+  margin-left: 10px;
+}
+
+.links {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.link {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color var(--transition-fast);
+  position: relative;
+}
+
+.link:hover {
+  color: var(--color-primary);
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--color-primary); /* Dourado no hover */
+  transition: width 0.3s ease;
+}
+
+.link:hover::after {
+  width: 100%;
+}
+
+/* ================= DROPDOWN MENU ================= */
+.dropdownContainer {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 1rem; /* Aumenta área de hover para não perder o mouse */
+  margin-bottom: -1rem;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(15px);
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.5rem 0;
+  min-width: 150px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dropdownContainer:hover .dropdownMenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dropdownItem {
+  display: block;
+  padding: 0.8rem 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background: rgba(201, 169, 110, 0.1);
+  color: var(--color-primary);
+}
+
+/* RESPONSIVE MEDIA QUERIES */
+@media (max-width: 1024px) {
+  .links, .ctaContainer {
+    display: none;
+  }
+  
+  .header {
+    height: 75px; /* Aumentei um pouquinho para dar respiro */
+    top: 1.5rem;
+    width: calc(100% - 2rem);
+  }
+  
+  .logoImg {
+    height: 60px; /* Reduz a logo no celular */
+    margin-bottom: 3px; /* Um pelinho pra cima se precisar */
+  }
+}
+
+.ctaBtn {
+  background-color: var(--color-primary);
+  color: #fff;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background-color var(--transition-fast);
+}
+
+.ctaBtn:hover {
+  background-color: var(--color-primary-dark);
+}

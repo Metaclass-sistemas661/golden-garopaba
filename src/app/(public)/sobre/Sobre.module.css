@@ -1,0 +1,272 @@
+.main {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fafafa; /* Fundo claro e elegante */
+  color: #0f172a; /* Slate 900 para contraste luxuoso */
+  font-family: var(--font-primary);
+  padding-top: 100px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Hero Section */
+.hero {
+  padding: 6rem 2rem;
+  text-align: center;
+  background: radial-gradient(circle at top, rgba(201, 169, 110, 0.08) 0%, transparent 60%);
+}
+
+.heroContent {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.subtitle {
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  font-weight: 300;
+  margin-bottom: 2rem;
+  font-family: var(--font-secondary);
+  color: #0f172a;
+}
+
+.heroText {
+  font-size: 1.25rem;
+  color: #475569; /* Slate 600 */
+  line-height: 1.6;
+}
+
+/* Broker Section */
+.brokerSection {
+  padding: 6rem 0;
+  background: linear-gradient(to bottom, #fafafa, #ffffff);
+}
+
+.brokerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+.brokerImageWrapper {
+  position: relative;
+  border-radius: 20px;
+  padding: 1rem;
+  background: linear-gradient(145deg, rgba(201,169,110,0.05), transparent);
+  border: 1px solid rgba(201,169,110,0.15);
+}
+
+.imageBox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+.brokerImage {
+  object-fit: cover;
+  object-position: center top;
+}
+
+.experienceBadge {
+  position: absolute;
+  bottom: -1rem;
+  right: -2rem;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(201, 169, 110, 0.25);
+}
+
+.experienceBadge strong {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.experienceBadge span {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.2rem;
+}
+
+.brokerContent {
+  padding-right: 2rem;
+}
+
+.sectionTitle {
+  font-size: 3rem;
+  font-weight: 300;
+  font-family: var(--font-secondary);
+  color: #0f172a;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.sectionRole {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-bottom: 2rem;
+}
+
+.divider {
+  width: 60px;
+  height: 2px;
+  background: var(--color-primary);
+  margin-bottom: 2.5rem;
+}
+
+.paragraph {
+  font-size: 1.1rem;
+  color: #475569;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+}
+
+.paragraph strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 4rem;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding-top: 3rem;
+}
+
+.statItem h4 {
+  font-size: 2rem;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.statItem span {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Values Section */
+.valuesSection {
+  padding: 8rem 0;
+  background: #ffffff;
+}
+
+.valuesHeader {
+  text-align: center;
+  margin-bottom: 5rem;
+}
+
+.valuesHeader h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  font-family: var(--font-secondary);
+  margin-bottom: 1rem;
+  color: #0f172a;
+}
+
+.valuesHeader p {
+  color: #475569;
+  font-size: 1.1rem;
+}
+
+.valuesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+}
+
+.valueCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+}
+
+.valueCard:hover {
+  transform: translateY(-10px);
+  border-color: rgba(201, 169, 110, 0.4);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.06);
+}
+
+.valueIcon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.valueCard h3 {
+  font-size: 1.3rem;
+  color: #0f172a;
+  margin-bottom: 1rem;
+}
+
+.valueCard p {
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .brokerGrid {
+    gap: 3rem;
+  }
+  .title {
+    font-size: 2.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 4rem 1rem;
+  }
+  .title {
+    font-size: 2.2rem;
+  }
+  .brokerGrid {
+    grid-template-columns: 1fr;
+  }
+  .brokerContent {
+    padding-right: 0;
+  }
+  .experienceBadge {
+    right: 0;
+  }
+  .valuesGrid {
+    grid-template-columns: 1fr;
+  }
+  .statsRow {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

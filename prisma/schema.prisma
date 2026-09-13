@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Property {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  title           String
+  description     String
+  price           Decimal          @db.Decimal(12, 2)
+  rentPrice       Decimal?         @db.Decimal(12, 2)
+  condoPrice      Decimal?         @db.Decimal(12, 2)
+  iptuPrice       Decimal?         @db.Decimal(12, 2)
+  transactionType TransactionType
+  category        PropertyCategory
+  propertyType    String
+  status          PropertyStatus   @default(AVAILABLE)
+
+  location        String?
+  city            String?
+  state           String?
+  zipCode         String?
+
+  bedrooms        Int              @default(0)
+  suites          Int              @default(0)
+  bathrooms       Int              @default(0)
+  parkingSpaces   Int              @default(0)
+  
+  areaTotal       Decimal?         @db.Decimal(10, 2)
+  areaUseful      Decimal?         @db.Decimal(10, 2)
+
+  features        String[]
+  leisure         String[]
+  security        String[]
+  furniture       String[]
+  environments    String[]
+  infrastructure  String[]
+
+  photos          String[]
+  tourLink        String?
+  videoLink       String?
+  financeable     Boolean          @default(false)
+  featured        Boolean          @default(false)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  views           PropertyView[]
+  leads           Lead[]
+  transactions    PropertyTransaction[]
+
+  @@index([code])
+  @@index([transactionType])
+  @@index([category])
+  @@index([price])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TransactionType {
+  SALE
+  RENT
+  LANCAMENTO
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  RURAL
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  SOLD
+  RENTED
+}
+
+// Analytics e Métricas
+
+model PropertyView {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  ipAddress  String?  // Para evitar contagem duplicada do mesmo usuário no mesmo dia
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([createdAt])
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String
+  email      String?
+  phone      String
+  message    String?
+  status     LeadStatus @default(NEW)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+  WON
+}
+
+enum BrokerStatus {
+  ACTIVE
+  VACATION
+  INACTIVE
+}
+
+model Broker {
+  id                   String       @id @default(uuid())
+  avatarUrl            String?
+  fullName             String
+  displayName          String
+  creci                String
+  document             String?
+  birthDate            DateTime?
+  email                String
+  whatsapp             String
+  phoneAlt             String?
+  address              String?
+  specialty            String
+  commissionPercentageSale Decimal      @db.Decimal(5, 2)
+  commissionPercentageRent Decimal      @db.Decimal(5, 2)
+  salesGoalQuarterly   Decimal?     @db.Decimal(15, 2)
+  status               BrokerStatus @default(ACTIVE)
+  hiredAt              DateTime?
+  instagramUrl         String?
+  linkedinUrl          String?
+  youtubeUrl           String?
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  transactions         PropertyTransaction[]
+}
+
+model PropertyTransaction {
+  id               String   @id @default(uuid())
+  propertyId       String
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  brokerId         String
+  broker           Broker   @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  
+  transactionType  TransactionType // SALE ou RENT
+  amount           Decimal  @db.Decimal(15, 2)
+  commissionAmount Decimal  @db.Decimal(15, 2)
+  transactionDate  DateTime
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([brokerId])
+  @@index([transactionDate])
+}
+
+model SystemSettings {
+  id                String   @id @default("singleton")
+  
+  // Geral
+  companyName       String   @default("Minha Imobiliária")
+  companyLegalName  String   @default("Minha Imobiliária LTDA")
+  cnpj              String   @default("")
+  creci             String   @default("")
+  email             String   @default("contato@imobiliaria.com.br")
+  
+  // Aparência
+  colorPrimary      String   @default("#0f172a")
+  colorSecondary    String   @default("#f8fafc")
+  typography        String   @default("inter")
+  
+  // Integrações
+  whatsappNumber    String?
+  googleAnalyticsId String?
+  metaPixelId       String?
+  
+  // Segurança
+  twoFactorEnabled  Boolean  @default(false)
+  
+  // Arquivos
+  logoUrl           String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

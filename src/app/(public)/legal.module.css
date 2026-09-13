@@ -1,0 +1,68 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 10rem 2rem 5rem 2rem; /* Espaço pro header flutuante */
+  color: #334155;
+  font-family: var(--font-primary);
+}
+
+.header {
+  margin-bottom: 3rem;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 2rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.lastUpdate {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.content {
+  line-height: 1.8;
+  font-size: 1.05rem;
+}
+
+.content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 2.5rem 0 1rem 0;
+}
+
+.content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 1.5rem 0 0.75rem 0;
+}
+
+.content p {
+  margin-bottom: 1.25rem;
+}
+
+.content ul {
+  list-style-type: disc;
+  padding-left: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.content li {
+  margin-bottom: 0.5rem;
+}
+
+.content a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.content a:hover {
+  text-decoration: underline;
+}

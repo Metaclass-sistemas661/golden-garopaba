@@ -1,0 +1,1243 @@
+.main {
+  width: 100%;
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+/* ================= HERO SECTION ================= */
+.hero {
+  position: relative;
+  min-height: 85vh; /* A bit taller since margin is smaller */
+  margin: 1.5rem 2rem 2rem 2rem; /* Much smaller top margin */
+}
+
+.videoBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  border-radius: 40px; /* Big rounded corners */
+  overflow: hidden; /* Keeps video inside rounded corners */
+}
+
+.heroVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoOverlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 100%);
+  z-index: 2;
+}
+
+.heroContainer {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* Center horizontally if wanted, or left-align */
+}
+
+.heroContent {
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeUp 1s ease-out forwards;
+}
+
+.tagline {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.title {
+  font-size: clamp(3.5rem, 6vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  letter-spacing: -1px;
+}
+
+.textPrimary {
+  color: var(--color-primary);
+}
+
+.subtitle {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2.5rem;
+  max-width: 600px;
+}
+
+.heroActions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 4rem;
+  justify-content: center;
+}
+
+.primaryButton {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+}
+
+.primaryButton:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.secondaryButton {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+}
+
+.secondaryButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: white;
+}
+
+/* ================= SEARCH BAR ================= */
+.floatingSearchContainer {
+  position: absolute;
+  bottom: 40px; /* Distância da borda inferior do vídeo */
+  left: 50%;
+  transform: translateX(-50%); /* Centraliza horizontalmente e não joga mais para baixo */
+  z-index: 100;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.searchBar {
+  background: rgba(255, 255, 255, 0.85); /* Bem mais branco e visível */
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 3rem; /* Muito mais alto (padding gigante) */
+  box-shadow: 0 40px 80px rgba(0,0,0,0.15);
+  width: 90%; /* Muito mais largo */
+  max-width: 1200px;
+  justify-content: space-between;
+}
+
+.searchField {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem; 
+  flex: 1 0 auto; /* Permite crescer mas nunca encolher mais do que o conteúdo precisa */
+}
+
+.searchLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+  letter-spacing: 1px;
+}
+
+/* Ocultar a seta padrão do select para um visual clean */
+.searchInput {
+  font-family: inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-secondary);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  appearance: none; /* Remove seta do select no Mac/PC */
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.searchInput::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+.searchInput option {
+  color: var(--color-text-main);
+}
+
+.searchValue {
+  font-size: 1.6rem; 
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.searchDivider {
+  width: 2px;
+  height: 80px; 
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.searchButton {
+  background-color: var(--color-primary);
+  border: none;
+  width: 70px; /* Minimalista e circular */
+  height: 70px;
+  border-radius: 50%; /* Círculo perfeito */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 2rem;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.searchButton:hover {
+  background-color: var(--color-primary-dark);
+  transform: scale(1.05); /* Pequena pulsação elegante */
+}
+
+/* ================= HERO RIGHT (VIDEO) ================= */
+.heroRight {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.videoPlaceholder {
+  width: 100%;
+  max-width: 700px;
+  height: 500px;
+  /* Mantenha transparente para que o vídeo flutue perfeitamente sobre o fundo off-white */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.1); /* Optional nice shadow for the video */
+}
+
+.heroVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ================= GLOBAL NETWORK SECTION ================= */
+.globalNetworkSection {
+  background-color: #ffffff; /* Fundo branco sólido exigido pela referência */
+  padding: 6rem 2rem;
+  width: 100%;
+}
+
+.globalNetworkContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 50% texto, 50% vídeo */
+  gap: 4rem;
+  align-items: center;
+}
+
+.globalNetworkContent {
+  display: flex;
+  flex-direction: column;
+  padding-right: 2rem;
+}
+
+.globalSubtitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary); /* Dourado/Oliva do sistema */
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 1.5rem;
+}
+
+.globalTitle {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--color-secondary); /* Cinza Chumbo escuro do sistema */
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+}
+
+.globalDescription {
+  font-size: 1.1rem;
+  color: var(--color-text-main);
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  max-width: 90%;
+}
+
+.globalLink {
+  display: inline-flex;
+  align-items: center;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  text-decoration: none;
+  margin-bottom: 4rem;
+  transition: opacity 0.3s ease;
+}
+
+.globalLink:hover {
+  opacity: 0.8;
+}
+
+.globalLinkIcon {
+  margin-left: 1rem;
+  color: var(--color-primary); /* Seta Dourada/Oliva */
+}
+
+.globalStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem 2rem; 
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.statNumber {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-primary); /* Números em Dourado/Oliva */
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.globalNetworkVideo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.globeVideo {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  mix-blend-mode: multiply; /* Mescla com o fundo branco */
+  filter: brightness(1.1) contrast(1.2); /* Força o fundo cinza claro do vídeo a virar branco puro para sumir completamente */
+}
+
+/* ================= FEATURED SECTION ================= */
+.featuredSection {
+  background-color: #050505; /* Preto absoluto de luxo */
+  padding: 4rem 0 6rem 0;
+  color: white; /* Forçar texto branco */
+  border-radius: 40px;
+  margin: 2rem;
+  overflow: hidden; /* Para garantir que nada vaze das bordas arredondadas */
+}
+
+.featuredContainer {
+  padding: 0 2rem; /* Menos padding lateral para os cards ficarem gigantes */
+  max-width: 100%; /* Ocupar tela toda como na Serhant */
+  margin: 0 auto;
+}
+
+.featuredHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.featuredTitle {
+  font-family: var(--font-secondary);
+  font-size: 3.5rem;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.carouselControls {
+  display: none; /* Hide on desktop by default */
+}
+
+/* ================= PROPERTY CARDS (GRID) ================= */
+.propertyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .propertyGrid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 1.5rem;
+    padding-bottom: 1.5rem;
+    /* Esconder scrollbar nativa */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .propertyGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .propertyCard {
+    min-width: 85vw;
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+  }
+  
+  .propertyFeatures {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .featureItem::after {
+    margin-left: 0.5rem;
+  }
+
+  .carouselControls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1rem;
+    align-self: flex-start;
+  }
+
+  .carouselBtn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .carouselBtn:active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+  
+  .featuredHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+  
+  .featuredTitle {
+    font-size: clamp(2.5rem, 8vw, 3rem);
+    line-height: 1.1;
+  }
+}
+
+.propertyCard {
+  position: relative;
+  height: 75vh; /* Altura super imersiva baseada na tela */
+  min-height: 600px;
+  border-radius: 8px; /* Borda mais sutil */
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cardImageWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.propertyCard:hover .cardImageWrapper {
+  transform: scale(1.05);
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.9) 100%);
+  z-index: 2;
+  transition: background 0.3s ease;
+}
+
+.propertyCard:hover .cardOverlay {
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.95) 100%);
+}
+
+.cardTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+.statusBadge {
+  background-color: #ffffff;
+  color: #0f224a; /* Azul escuro Serhant style */
+  padding: 0.5rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 0 0 12px 0; /* Arredondado só no canto inferior direito, colado na borda */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-block;
+}
+
+.cardBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 3;
+  padding: 2rem;
+}
+
+.propertyPrice {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.propertyAddress {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+}
+
+.propertyFeatures {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+}
+
+.featureItem::after {
+  content: "•";
+  margin-left: 1rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.featureItem:last-child::after {
+  display: none;
+}
+
+/* ================= 3D EXPERIENCE SECTION ================= */
+.experienceSection {
+  background-color: #fbfbfb;
+  padding: 8rem 2rem;
+  border-radius: 40px;
+  margin: 2rem;
+  overflow: hidden;
+}
+
+.experienceContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.experienceCanvasWrapper {
+  position: relative;
+  height: 600px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.experienceContent {
+  padding-right: 2rem;
+}
+
+.experienceTagline {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7a828e;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.experienceTitle {
+  font-family: var(--font-secondary);
+  font-size: 4rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: #111111;
+  margin-bottom: 1.5rem;
+}
+
+.experienceTitle span {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.experienceDescription {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #555555;
+  margin-bottom: 2.5rem;
+}
+
+.experienceList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 3rem 0;
+}
+
+.experienceList li {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: #444444;
+  line-height: 1.5;
+}
+
+.checkIcon {
+  color: var(--color-primary);
+  margin-right: 1rem;
+  font-size: 1.2rem;
+  margin-top: 2px;
+}
+
+.exploreButton {
+  display: inline-block;
+  background-color: var(--color-primary); /* Dourado/Oliva */
+  color: #ffffff;
+  padding: 1rem 3rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(138, 122, 93, 0.2);
+}
+
+.exploreButton:hover {
+  background-color: #766850;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(138, 122, 93, 0.3);
+}
+
+/* ================= FEATURES / BENEFITS SECTION ================= */
+.featuresSection {
+  background-color: #111111; /* Preto puxado pro grafite conforme imagem */
+  padding: 6rem 4rem;
+  border-radius: 40px;
+  margin: 1.5rem 2rem 5rem 2rem;
+  color: white;
+}
+
+.featuresContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.featuresText {
+  flex: 1;
+  max-width: 500px;
+}
+
+.featuresText h2 {
+  font-family: var(--font-secondary);
+  font-size: 3.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  color: var(--color-primary); /* Cor dourada padrão da página */
+}
+
+.featuresText p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.featuresGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.featureCard {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #111111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.featureIcon {
+  color: var(--color-primary); /* Dourado */
+  margin-bottom: 1.5rem;
+}
+
+.featureCard h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.featureCard p {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Responsividade Básica para Features */
+@media (max-width: 1024px) {
+  .featuresContainer {
+    flex-direction: column;
+    text-align: center;
+  }
+  .featuresText {
+    max-width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= FAQ SECTION ================= */
+.faqSection {
+  background-color: #faf9f6; /* Fundo off-white elegante */
+  padding: 8rem 2rem;
+  color: #222222;
+}
+
+.faqContainer {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faqHeader {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.faqSubtitle {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #666;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.faqHeader h2 {
+  font-family: var(--font-secondary);
+  font-size: 3.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: #333;
+}
+
+.faqHeader h2 span {
+  color: var(--color-primary); /* Dourado */
+  font-weight: 600;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.faqItem {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.faqQuestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faqQuestion h3 {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+  padding-right: 2rem;
+}
+
+.faqToggleBtn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.faqAnswerWrapper {
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.faqAnswer {
+  padding-top: 1rem;
+  color: #666;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.faqOpen .faqToggleBtn {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 768px) {
+  .faqHeader h2 {
+    font-size: 2.5rem;
+  }
+  .faqQuestion h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* ================= UNIFIED BOTTOM SECTION ================= */
+.bottomUnifiedWrapper {
+  margin: 1.5rem 2rem 2rem 2rem;
+  border-radius: 40px;
+  overflow: hidden; /* Força o recorte das bordas nas seções internas */
+  background-color: #222222; /* Fundo do footer preenche o wrapper */
+}
+
+/* ================= CTA VIDEO SECTION ================= */
+.ctaSection {
+  position: relative;
+  height: 450px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Gradient overlay para escurecer sutilmente o vídeo e destacar o texto */
+.ctaSection::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 100%);
+  z-index: 1;
+}
+
+.ctaVideo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Caixa central invisível, apenas para organizar o texto */
+.ctaGlassBox {
+  position: relative;
+  z-index: 2;
+  padding: 2rem;
+  text-align: center;
+  color: #ffffff;
+  max-width: 800px;
+}
+
+.ctaGlassBox h2 {
+  font-family: var(--font-secondary);
+  font-size: 3.5rem;
+  font-weight: 400;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  color: #ffffff;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.5); /* Sombra para garantir leitura */
+}
+
+.ctaGlassBox p {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2.5rem;
+  line-height: 1.5;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.ctaButton {
+  display: inline-block;
+  background-color: var(--color-primary);
+  color: #fff;
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+}
+
+.ctaButton:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(212, 175, 55, 0.4);
+}
+
+@media (max-width: 768px) {
+  .ctaSection {
+    height: 500px;
+    margin: 1.5rem 1rem 4rem 1rem;
+    border-radius: 30px;
+  }
+  .ctaGlassBox {
+    padding: 2rem;
+    margin: 0 1.5rem;
+  }
+  .ctaGlassBox h2 {
+    font-size: 2rem;
+  }
+}
+
+/* ================= FOOTER SECTION ================= */
+.footerSection {
+  background-color: transparent; /* Herda o fundo do wrapper */
+  padding: 5rem 4rem 2rem 4rem;
+  color: #ffffff;
+}
+
+.footerContainer {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4rem;
+}
+
+.footerBrand {
+  width: 350px;
+  max-width: 100%;
+}
+
+.footerLogo {
+  font-family: var(--font-secondary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-primary); /* Dourado igual ao header */
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity 0.3s ease;
+}
+
+.footerLogo:hover {
+  opacity: 0.8;
+}
+
+.footerBrand p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.footerLinksWrapper {
+  display: flex;
+  gap: 6rem;
+  flex-wrap: wrap;
+  margin: 0 auto; /* Traz o bloco inteiro de colunas para o centro */
+}
+
+.footerCol h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  color: #ffffff;
+}
+
+.footerCol ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footerCol a {
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.footerCol a:hover {
+  color: var(--color-primary);
+}
+
+.footerBottom {
+  text-align: center;
+  padding-top: 2rem;
+}
+
+.footerBottom p {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .bottomUnifiedWrapper {
+    margin: 1.5rem 1rem 1rem 1rem;
+    border-radius: 30px;
+  }
+  
+  .ctaSection {
+    height: 500px;
+  }
+  
+  .ctaGlassBox {
+    padding: 2rem;
+    margin: 0 1.5rem;
+  }
+  
+  .ctaGlassBox h2 {
+    font-size: 2rem;
+  }
+  
+  .footerSection {
+    padding: 3rem 2rem 2rem 2rem;
+  }
+  
+  .footerContainer {
+    flex-direction: column;
+    gap: 3rem;
+  }
+  
+  .footerLinksWrapper {
+    gap: 3rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* RESPONSIVE DESIGN - MOBILE FIRST APPROACH */
+@media (max-width: 1024px) {
+  .title {
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+  }
+  
+  .heroContent {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .floatingSearchContainer {
+    bottom: -60px; /* Reduzido ainda mais */
+    width: 95%; /* Um pouco mais largo */
+    position: absolute;
+    transform: translateX(-50%);
+    left: 50%;
+    margin: 0;
+  }
+
+  .searchBar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 1rem;
+    border-radius: 16px;
+    width: 100%;
+    gap: 0.5rem;
+    box-sizing: border-box;
+  }
+
+  .searchDivider {
+    display: none; /* Esconde os divisores no mobile */
+  }
+  
+  .searchField {
+    width: 100%;
+    padding: 0; /* Remove padding para ficar mais compacto */
+    box-sizing: border-box;
+  }
+
+  .searchButton {
+    grid-column: 1 / -1; /* Botão ocupa as duas colunas */
+    width: 100%;
+    margin-top: 0.5rem;
+    margin-left: 0; /* REMOVER MARGEM DO DESKTOP QUE QUEBRA O LAYOUT */
+    height: 45px;
+    border-radius: 10px;
+    box-sizing: border-box;
+  }
+  
+  .hero {
+    height: 85vh;
+    margin: 0; /* Ponta a ponta */
+  }
+  
+  .videoBackground {
+    border-radius: 0; /* Sem cantos arredondados no mobile */
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .featuresSection {
+    padding-top: 8rem; /* Espaço para a barra flutuante */
+    padding-bottom: 4rem;
+  }
+
+  .aboutSection, .propertiesSection {
+    padding: 4rem 0;
+  }
+  
+  .faqGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .propertyGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .headerActions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  /* Ajustes da seção Experience (3D) no mobile */
+  .experienceContainer {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .experienceSection {
+    margin: 1rem;
+    padding: 3rem 1.5rem;
+    border-radius: 20px;
+  }
+
+  .experienceTitle {
+    font-size: clamp(2rem, 8vw, 2.5rem);
+    word-break: break-word; /* Evita que palavras grandes quebrem o layout */
+  }
+
+  .experienceContent {
+    padding-right: 0; /* Remove padding que empurrava conteúdo para fora */
+  }
+
+  .experienceCanvasWrapper {
+    height: 350px; /* Menor no mobile */
+  }
+
+  /* Ajustes da seção Features (Exclusividade) no mobile */
+  .featuresSection {
+    margin: 1rem;
+    padding: 3rem 1.5rem;
+    border-radius: 20px;
+  }
+
+  .featuresText h2 {
+    font-size: clamp(2rem, 8vw, 2.5rem);
+    word-break: break-word;
+  }
+
+  .featuresText p {
+    font-size: 1rem;
+  }
+}
+
