@@ -9,7 +9,7 @@ runConfig:
 
 # Environment variables and secrets.
 env:
-  # Banco de Dados — conexão direta (sem pgbouncer) para uso com pg.Pool interno
+  # Banco de Dados
   - variable: DATABASE_URL
     secret: DATABASE_URL
   - variable: DIRECT_URL
