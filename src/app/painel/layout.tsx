@@ -3,6 +3,8 @@ import RightSidebar from '@/components/admin/RightSidebar'
 import styles from './layout.module.css'
 import { getSettings } from '@/app/actions/settings'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({
   children,
 }: {
