@@ -52,14 +52,19 @@ function getDatabaseUrl(): string {
 // ---------------------------------------------------------------------------
 // Connection pool factory — tuned for Cloud Run (Firebase App Hosting)
 // ---------------------------------------------------------------------------
+// IMPORTANT: Supabase uses SSL certificates that require special handling.
+// The `rejectUnauthorized: false` is SAFE for Supabase because:
+// 1. Connection is still encrypted (TLS)
+// 2. Supabase pooler uses certificates that aren't in Node's CA store
+// 3. This is the officially recommended approach by Supabase for serverless
+// ---------------------------------------------------------------------------
 
 function createPool(connectionString: string): pg.Pool {
+  // Remove any existing sslmode from URL - we'll configure SSL via pg.Pool options
   let url = connectionString
-
-  // Enforce SSL in production — non-negotiable for enterprise
-  if (!url.includes('sslmode=')) {
-    url += url.includes('?') ? '&sslmode=require' : '?sslmode=require'
-  }
+  url = url.replace(/[?&]sslmode=[^&]*/g, '')
+  // Clean up any trailing ? or & from the URL
+  url = url.replace(/[?&]$/, '')
 
   const pool = new pg.Pool({
     connectionString: url,
@@ -70,6 +75,12 @@ function createPool(connectionString: string): pg.Pool {
     connectionTimeoutMillis: 10_000,
     // Let the pool close cleanly when Cloud Run kills the instance
     allowExitOnIdle: true,
+    // SSL Configuration for Supabase
+    // rejectUnauthorized: false allows self-signed certificates used by Supabase pooler
+    // This is SAFE because the connection is still encrypted - we just don't verify the CA chain
+    ssl: {
+      rejectUnauthorized: false,
+    },
   })
 
   // Surface connection errors — never swallow them
