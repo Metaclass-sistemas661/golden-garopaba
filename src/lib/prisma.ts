@@ -7,8 +7,12 @@ const prismaClientSingleton = () => {
   if (connectionString && !connectionString.includes('sslmode=')) {
     connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require'
   }
-  
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({ 
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
