@@ -1,21 +1,64 @@
-# Settings for Backend (on Cloud Run).
-# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+# =============================================================================
+# Firebase App Hosting Configuration
+# Golden Garopaba - Enterprise Grade Configuration
+# =============================================================================
+# Documentation: https://firebase.google.com/docs/app-hosting/configure
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Cloud Run Settings
+# -----------------------------------------------------------------------------
 runConfig:
+  # Minimum instances: 0 allows scale-to-zero for cost optimization
+  # Set to 1+ in production for reduced cold start latency
   minInstances: 0
+  
+  # Maximum instances: controls cost ceiling and capacity
   # maxInstances: 100
+  
+  # Concurrency: requests per instance (default: 80)
+  # Lower values = more instances = higher cost but better isolation
   # concurrency: 80
+  
+  # CPU allocation: 1 = 1 vCPU (adequate for most Next.js apps)
   # cpu: 1
+  
+  # Memory: 512 MiB is minimum for Next.js with Prisma
+  # Increase to 1024 if you experience OOM errors
   # memoryMiB: 512
 
-# Environment variables and secrets.
+# -----------------------------------------------------------------------------
+# Environment Variables and Secrets
+# -----------------------------------------------------------------------------
+# IMPORTANT: Variables prefixed with NEXT_PUBLIC_ must be available at BUILD
+# time because Next.js inlines them during compilation. Use availability: [BUILD, RUNTIME]
+# -----------------------------------------------------------------------------
 env:
-  # Banco de Dados
+  # ---------------------------------------------------------------------------
+  # Database Configuration (Runtime Only)
+  # ---------------------------------------------------------------------------
+  # These are server-side only and don't need to be available at build time
   - variable: DATABASE_URL
     secret: DATABASE_URL
+    
   - variable: DIRECT_URL
     secret: DIRECT_URL
-  # Supabase Auth
+
+  # ---------------------------------------------------------------------------
+  # Supabase Authentication (BUILD + RUNTIME)
+  # ---------------------------------------------------------------------------
+  # CRITICAL: NEXT_PUBLIC_* variables are inlined at build time by Next.js.
+  # They MUST be available during the build phase, not just at runtime.
+  # Without availability: [BUILD, RUNTIME], these will be undefined in the bundle.
+  # ---------------------------------------------------------------------------
   - variable: NEXT_PUBLIC_SUPABASE_URL
     secret: NEXT_PUBLIC_SUPABASE_URL
+    availability:
+      - BUILD
+      - RUNTIME
+      
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
     secret: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    availability:
+      - BUILD
+      - RUNTIME
