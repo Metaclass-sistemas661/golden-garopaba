@@ -1,20 +1,18 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { Pool } from 'pg'
 
 const prismaClientSingleton = () => {
   let connectionString = process.env.DATABASE_URL?.replace(/^"|"$/g, '') || ''
   if (connectionString && !connectionString.includes('sslmode=')) {
     connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require'
   }
-  const pool = new Pool({ 
-    connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    }
+  
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: connectionString,
+      },
+    },
   })
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
 }
 
 declare const globalThis: {
