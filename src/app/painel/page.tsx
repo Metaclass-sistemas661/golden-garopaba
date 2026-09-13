@@ -4,6 +4,13 @@ import { TrendingUp, Building, Users } from 'lucide-react'
 import styles from './page.module.css'
 import DashboardReminders from '@/components/admin/DashboardReminders'
 import prisma from '@/lib/prisma'
+import { 
+  getNowInBrazil, 
+  getHourInBrazil, 
+  createBrazilDate,
+  isSameDayInBrazil,
+  toSaoPauloTime
+} from '@/utils/timezone'
 
 export default async function AdminDashboard({
   searchParams,
@@ -13,15 +20,19 @@ export default async function AdminDashboard({
   const resolvedParams = await searchParams
   const filter = resolvedParams.filter || '7d'
 
-  const now = new Date()
-  let startDate = new Date()
+  // Usa timezone do Brasil para todas as operações de data/hora
+  const nowBrazil = getNowInBrazil()
+  let startDate: Date
 
   if (filter === 'hoje') {
-    startDate.setHours(0, 0, 0, 0)
+    // Início do dia de hoje no horário de Brasília
+    startDate = createBrazilDate(0, false)
   } else if (filter === '7d') {
-    startDate.setDate(now.getDate() - 7)
+    // 7 dias atrás no horário de Brasília
+    startDate = createBrazilDate(7, false)
   } else if (filter === '30d') {
-    startDate.setDate(now.getDate() - 30)
+    // 30 dias atrás no horário de Brasília
+    startDate = createBrazilDate(30, false)
   } else {
     startDate = new Date(0)
   }
@@ -60,38 +71,48 @@ export default async function AdminDashboard({
   let chartData: { day: string; value: number; height: string; active?: boolean }[] = []
 
   if (filter === 'hoje') {
-    const blocks = [0, 0, 0, 0] // 00h, 06h, 12h, 18h
+    // Blocos de horário: 00h-05h, 06h-11h, 12h-17h, 18h-23h
+    const blocks = [0, 0, 0, 0]
+    
     activeViews.forEach(v => {
-      const h = v.createdAt.getHours()
-      if (h < 6) blocks[0]++
-      else if (h < 12) blocks[1]++
-      else if (h < 18) blocks[2]++
+      // Converte o horário UTC do banco para horário de Brasília
+      const hourInBrazil = getHourInBrazil(v.createdAt)
+      
+      if (hourInBrazil < 6) blocks[0]++
+      else if (hourInBrazil < 12) blocks[1]++
+      else if (hourInBrazil < 18) blocks[2]++
       else blocks[3]++
     })
+    
     const maxVal = Math.max(...blocks, 1) // Evitar div/0
-    const currentHour = now.getHours()
+    const currentHourBrazil = nowBrazil.getHours()
     
     chartData = [
-      { day: '00h', value: blocks[0], height: `${Math.max((blocks[0]/maxVal)*100, 5)}%`, active: currentHour < 6 },
-      { day: '06h', value: blocks[1], height: `${Math.max((blocks[1]/maxVal)*100, 5)}%`, active: currentHour >= 6 && currentHour < 12 },
-      { day: '12h', value: blocks[2], height: `${Math.max((blocks[2]/maxVal)*100, 5)}%`, active: currentHour >= 12 && currentHour < 18 },
-      { day: '18h', value: blocks[3], height: `${Math.max((blocks[3]/maxVal)*100, 5)}%`, active: currentHour >= 18 },
+      { day: '00h', value: blocks[0], height: `${Math.max((blocks[0]/maxVal)*100, 5)}%`, active: currentHourBrazil < 6 },
+      { day: '06h', value: blocks[1], height: `${Math.max((blocks[1]/maxVal)*100, 5)}%`, active: currentHourBrazil >= 6 && currentHourBrazil < 12 },
+      { day: '12h', value: blocks[2], height: `${Math.max((blocks[2]/maxVal)*100, 5)}%`, active: currentHourBrazil >= 12 && currentHourBrazil < 18 },
+      { day: '18h', value: blocks[3], height: `${Math.max((blocks[3]/maxVal)*100, 5)}%`, active: currentHourBrazil >= 18 },
     ]
   } else if (filter === '7d') {
     const daysStr = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    
+    // Cria os últimos 7 dias baseado no horário de Brasília
     const last7Days = Array.from({length: 7}).map((_, i) => {
-      const d = new Date(now)
-      d.setDate(now.getDate() - (6 - i))
+      const d = new Date(nowBrazil)
+      d.setDate(nowBrazil.getDate() - (6 - i))
+      d.setHours(0, 0, 0, 0)
       return { date: d, dayIndex: d.getDay(), count: 0 }
     })
     
     activeViews.forEach(v => {
-      // Find matching day in last7Days
-      const match = last7Days.find(d => d.date.toDateString() === v.createdAt.toDateString())
+      // Converte a data UTC do banco para data de Brasília e compara
+      const viewDateBrazil = toSaoPauloTime(v.createdAt)
+      const match = last7Days.find(d => isSameDayInBrazil(d.date, viewDateBrazil))
       if (match) match.count++
     })
     
     const maxVal = Math.max(...last7Days.map(d => d.count), 1)
+    
     chartData = last7Days.map((d, i) => ({
       day: daysStr[d.dayIndex],
       value: d.count,
@@ -99,16 +120,20 @@ export default async function AdminDashboard({
       active: i === 6 // Hoje é sempre o último
     }))
   } else {
-    // 30 dias - vamos agrupar em 4 semanas
+    // 30 dias - vamos agrupar em 4 semanas (usando timezone do Brasil)
     const weeks = [0, 0, 0, 0]
+    
     activeViews.forEach(v => {
-      const diffTime = Math.abs(now.getTime() - v.createdAt.getTime())
+      const viewDateBrazil = toSaoPauloTime(v.createdAt)
+      const diffTime = Math.abs(nowBrazil.getTime() - viewDateBrazil.getTime())
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      
       if (diffDays < 7) weeks[3]++
       else if (diffDays < 14) weeks[2]++
       else if (diffDays < 21) weeks[1]++
       else weeks[0]++
     })
+    
     const maxVal = Math.max(...weeks, 1)
     chartData = [
       { day: 'Sem 1', value: weeks[0], height: `${Math.max((weeks[0]/maxVal)*100, 10)}%` },
