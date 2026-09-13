@@ -1,14 +1,42 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function getSupabaseEnv() {
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!rawUrl || !rawKey) {
+    throw new Error(
+      '[SUPABASE] FATAL: Missing environment variables. ' +
+      `NEXT_PUBLIC_SUPABASE_URL=${rawUrl ? 'set' : 'MISSING'}, ` +
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY=${rawKey ? 'set' : 'MISSING'}. ` +
+      'Configure them in apphosting.yaml → env or in your .env file.'
+    )
+  }
+
+  const url = rawUrl.replace(/^"|"$/g, '')
+  const key = rawKey.replace(/^"|"$/g, '')
+
+  if (url !== rawUrl || key !== rawKey) {
+    console.warn(
+      '[SUPABASE] WARNING: Supabase env vars contain wrapping quotes. ' +
+      'Fix the secret values in Google Cloud Secret Manager to remove them.'
+    )
+  }
+
+  return { url, key }
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  const { url, key } = getSupabaseEnv()
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {

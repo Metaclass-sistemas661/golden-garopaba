@@ -9,9 +9,12 @@ runConfig:
 
 # Environment variables and secrets.
 env:
-  # Supabase e Banco de Dados 
+  # Banco de Dados — conexão direta (sem pgbouncer) para uso com pg.Pool interno
   - variable: DATABASE_URL
     secret: DATABASE_URL
+  - variable: DIRECT_URL
+    secret: DIRECT_URL
+  # Supabase Auth
   - variable: NEXT_PUBLIC_SUPABASE_URL
     secret: NEXT_PUBLIC_SUPABASE_URL
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
