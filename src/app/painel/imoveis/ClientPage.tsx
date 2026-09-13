@@ -21,7 +21,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
   const itemsPerPage = 5
 
   // Estado do Modal de Transação
-  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE'|'RENT'|'LANCAMENTO' } | null>(null)
+  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE'|'RENT' } | null>(null)
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -160,7 +160,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                           <button 
                             className={`${styles.actionBtn} ${styles.btnSuccess}`} 
                             title="Registrar Fechamento"
-                            onClick={() => setModalData({ id: property.id, title: property.title, type: property.transactionType })}
+                            onClick={() => setModalData({ id: property.id, title: property.title, type: property.transactionType === 'LANCAMENTO' ? 'SALE' : property.transactionType as 'SALE' | 'RENT' })}
                           >
                             <Handshake size={18} />
                           </button>

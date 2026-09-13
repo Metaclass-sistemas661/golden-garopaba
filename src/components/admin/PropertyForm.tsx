@@ -8,6 +8,7 @@ import styles from './PropertyForm.module.css'
 import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
+import { PropertyDTO } from '@/types/dto'
 
 interface PropertyFormProps {
   initialData?: PropertyDTO;

@@ -3,20 +3,14 @@
 import { useState } from 'react'
 import { X, CheckCircle, Handshake, Loader2, DollarSign, Calendar, User } from 'lucide-react'
 import { registerTransaction } from '@/app/actions/transactions'
+import { BrokerDTO } from '@/types/dto'
 import styles from './TransactionModal.module.css'
-
-interface Broker {
-  id: string
-  displayName: string
-  commissionPercentageSale: number
-  commissionPercentageRent: number
-}
 
 interface TransactionModalProps {
   propertyId: string
   propertyTitle: string
   transactionType: 'SALE' | 'RENT'
-  brokers: Broker[]
+  brokers: BrokerDTO[]
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
