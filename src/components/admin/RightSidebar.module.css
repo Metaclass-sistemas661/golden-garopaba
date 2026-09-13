@@ -273,3 +273,46 @@
   color: #94a3b8;
   font-weight: 500;
 }
+
+/* ========================================
+   RESPONSIVE STYLES - Right Sidebar
+   ======================================== */
+
+@media (max-width: 1366px) {
+  .rightSidebar {
+    width: 70px;
+  }
+  
+  .iconBtn, .addBtn {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .avatar {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .rightSidebar {
+    width: 60px;
+    padding: 1rem 0;
+    border-radius: 16px;
+  }
+  
+  .iconBtn, .addBtn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+  
+  .topSection, .bottomSection {
+    gap: 1rem;
+  }
+}

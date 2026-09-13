@@ -14,11 +14,14 @@
   background: transparent;
   height: calc(100vh - 2rem);
   overflow: hidden;
+  min-width: 0; /* Permite que flex item encolha */
 }
 
 .contentArea {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem; /* Espaço para evitar corte de elementos na borda */
   scrollbar-width: none; /* Esconde barra no firefox */
 }
 
@@ -32,3 +35,26 @@
 }
 
 /* Header removido do flex padrão e integrado no Dashboard ou Sidebar para ficar mais limpo estilo SaaS */
+
+/* ========================================
+   RESPONSIVE STYLES - Painel Admin
+   ======================================== */
+
+/* Notebooks menores */
+@media (max-width: 1366px) {
+  .adminLayout {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .adminLayout {
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  .mainContent {
+    height: calc(100vh - 1rem);
+  }
+}
