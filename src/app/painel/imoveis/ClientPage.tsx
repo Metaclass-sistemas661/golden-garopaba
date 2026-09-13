@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, Edit, Trash2, EyeOff, Eye, ChevronLeft, ChevronRight, Filter, Loader2, Handshake } from 'lucide-react'
+import { Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, Handshake } from 'lucide-react'
 import styles from './page.module.css'
-import { deleteProperty, togglePropertyStatus } from '@/app/actions/properties'
+import { deleteProperty } from '@/app/actions/properties'
 import TransactionModal from '@/components/admin/TransactionModal'
 import { PropertyDTO, BrokerDTO } from '@/types/dto'
 
@@ -37,11 +37,6 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
       }
       setIsPending(null)
     }
-  }
-
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    // Disabled functionality since PAUSED is not a Prisma state
-    alert('Função temporariamente desativada.')
   }
 
   const handleTransactionSuccess = () => {
@@ -224,8 +219,8 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
         onClose={() => setModalData(null)}
         propertyId={modalData?.id || ''}
         propertyTitle={modalData?.title || ''}
-        transactionType={modalData?.type as any || 'SALE'}
-        brokers={brokers as any}
+        transactionType={modalData?.type || 'SALE'}
+        brokers={brokers}
         onSuccess={handleTransactionSuccess}
       />
     </div>

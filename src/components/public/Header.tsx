@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './Header.module.css'
-import { getSettings } from '@/app/actions/settings'
 import { ChevronDown } from 'lucide-react'
 import MobileMenu from './MobileMenu'
 

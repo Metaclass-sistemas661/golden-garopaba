@@ -71,6 +71,7 @@ export default function RightSidebar() {
     <aside className={styles.rightSidebar}>
       <div className={styles.topSection}>
         <div className={styles.userIconWrapper} title="Perfil do Usuário">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="https://ui-avatars.com/api/?name=Admin&background=d4af37&color=fff" 
             alt="User Avatar" 

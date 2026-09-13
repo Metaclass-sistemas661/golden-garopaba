@@ -44,6 +44,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
     const price = params.get('price');
     
     if (loc || type || price) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFilters(prev => {
         const newFilters = { ...prev };
         if (loc) newFilters.searchTerm = loc; 
@@ -162,7 +163,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
     }
 
     return result
-  }, [mode, filters, sortBy, initialProperties])
+  }, [filters, sortBy, initialProperties])
 
   // Lógica de Paginação
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage) || 1

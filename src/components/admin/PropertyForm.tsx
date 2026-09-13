@@ -2,14 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft } from 'lucide-react'
 import styles from './PropertyForm.module.css'
 import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
-import { PropertyDTO } from '@/types/dto'
 
 interface PropertyFormProps {
   initialData?: PropertyDTO;
@@ -235,7 +233,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
               <div className={styles.grid2}>
                 <div className={styles.formGroup}>
                   <label>Categoria Global</label>
-                  <select value={selectedCategory} onChange={(e) => { setSelectedCategory(e.target.value as any); setSelectedType('') }} required>
+                  <select value={selectedCategory} onChange={(e) => { setSelectedCategory(e.target.value as 'RESIDENTIAL' | 'COMMERCIAL' | 'RURAL'); setSelectedType('') }} required>
                     <option value="RESIDENTIAL">Residencial</option>
                     <option value="COMMERCIAL">Comercial</option>
                     <option value="RURAL">Rural</option>

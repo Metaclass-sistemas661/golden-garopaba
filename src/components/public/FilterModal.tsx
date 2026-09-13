@@ -95,7 +95,7 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
 
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalFilters(currentFilters);
     }
   }, [isOpen, currentFilters])
