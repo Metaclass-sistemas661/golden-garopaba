@@ -9,6 +9,13 @@ export type PropertyDTO = Omit<Property, 'price' | 'rentPrice' | 'condoPrice' | 
   areaUseful: number | null;
   latitude: number | null;
   longitude: number | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
   createdAt: string;
   updatedAt: string;
 }

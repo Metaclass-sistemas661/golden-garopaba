@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { validateAndSanitizeAddress } from '@/utils/addressValidation'
 
 // ============================================================================
 // Enterprise-Grade Geocoding with retry, validation and detailed logging
@@ -129,6 +130,13 @@ export interface PropertyPayload {
   category: string;
   propertyType: string;
   location: string;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
   description: string;
   price?: number | null;
   rentPrice?: number | null;
@@ -202,6 +210,29 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       }
     }
 
+    // ========================================================================
+    // Enterprise Address Validation & Sanitization (Server-Side)
+    // ========================================================================
+    const addressResult = validateAndSanitizeAddress({
+      street:       data.street,
+      number:       data.number,
+      complement:   data.complement,
+      neighborhood: data.neighborhood,
+      city:         data.city,
+      state:        data.state,
+      zipCode:      data.zipCode,
+    })
+
+    if (!addressResult.valid) {
+      console.warn('⚠️ [SAVE] Endereço com campos inválidos:', addressResult.errors)
+      return {
+        success: false,
+        error: `Endereço inválido: ${addressResult.errors.join(' | ')}`
+      }
+    }
+
+    const addr = addressResult.sanitized
+
     const payload = {
       title: data.title,
       code: data.code,
@@ -209,6 +240,14 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       category: data.category as import('@prisma/client').PropertyCategory,
       propertyType: data.propertyType,
       location: data.location,
+      // Use sanitized & validated address values from server-side validation
+      street:       addr.street,
+      number:       addr.number,
+      complement:   addr.complement,
+      neighborhood: addr.neighborhood,
+      city:         addr.city,
+      state:        addr.state,
+      zipCode:      addr.zipCode,
       description: data.description,
       price: data.price ? Number(data.price) : 0,
       rentPrice: data.rentPrice ? Number(data.rentPrice) : null,

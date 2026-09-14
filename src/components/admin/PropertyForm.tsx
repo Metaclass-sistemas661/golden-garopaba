@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft, Search } from 'lucide-react'
 import styles from './PropertyForm.module.css'
 import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
@@ -40,7 +40,18 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [status, setStatus] = useState(initialData?.status || 'AVAILABLE')
   const [selectedCategory, setSelectedCategory] = useState<'RESIDENTIAL'|'COMMERCIAL'|'RURAL'>(initialData?.category || 'RESIDENTIAL')
   const [selectedType, setSelectedType] = useState<string>(initialData?.propertyType || '')
-  const [location, setLocation] = useState(initialData?.location || '')
+  const [zipCode, setZipCode] = useState(initialData?.zipCode || '')
+  const [street, setStreet] = useState(initialData?.street || '')
+  const [addressNumber, setAddressNumber] = useState(initialData?.number || '')
+  const [complement, setComplement] = useState(initialData?.complement || '')
+  const [neighborhood, setNeighborhood] = useState(initialData?.neighborhood || '')
+  const [city, setCity] = useState(initialData?.city || '')
+  const [addressState, setAddressState] = useState(initialData?.state || '')
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState('')
+  const [cepSuccess, setCepSuccess] = useState(false)
+  // Field-level validation errors for address (client-side)
+  const [addressErrors, setAddressErrors] = useState<Record<string, string>>({})
   const [price, setPrice] = useState(initialData?.price ? formatCurrency(Number(initialData.price)) : '')
   const [rentPrice, setRentPrice] = useState(initialData?.rentPrice ? formatCurrency(Number(initialData.rentPrice)) : '')
   const [condoPrice, setCondoPrice] = useState(initialData?.condoPrice ? formatCurrency(Number(initialData.condoPrice)) : '')
@@ -92,6 +103,125 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showEmojiPicker])
 
+  // ============================================================================
+  // CEP Lookup — Enterprise Grade
+  // ViaCEP API with: 5s timeout, 3 retries, exponential backoff, graceful fallback
+  // ============================================================================
+  const lookupCEP = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '')
+    if (cleanCep.length !== 8) {
+      setCepError('CEP deve ter 8 dígitos')
+      setCepSuccess(false)
+      return
+    }
+
+    setCepLoading(true)
+    setCepError('')
+    setCepSuccess(false)
+
+    const MAX_RETRIES = 3
+    const TIMEOUT_MS  = 5000
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // AbortController garante timeout de 5s por tentativa
+        const controller = new AbortController()
+        const timeoutId  = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+        const response = await fetch(
+          `https://viacep.com.br/ws/${cleanCep}/json/`,
+          { signal: controller.signal }
+        )
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // ViaCEP retorna { erro: true } para CEPs inexistentes
+        if (data.erro) {
+          setCepError('CEP não encontrado. Preencha o endereço manualmente.')
+          setCepSuccess(false)
+          setCepLoading(false)
+          return
+        }
+
+        // Preenche os campos automaticamente com os dados retornados
+        // Só sobrescreve se o ViaCEP retornou valor (preserva edição manual)
+        if (data.logradouro) setStreet(data.logradouro)
+        if (data.bairro)     setNeighborhood(data.bairro)
+        if (data.localidade) setCity(data.localidade)
+        if (data.uf)         setAddressState(data.uf)
+
+        setCepSuccess(true)
+        setCepError('')
+        setCepLoading(false)
+
+        // Foca no campo Número após auto-preenchimento para agilizar o fluxo
+        setTimeout(() => {
+          const numberInput = document.getElementById('addressNumber')
+          if (numberInput) (numberInput as HTMLInputElement).focus()
+        }, 150)
+
+        return // sucesso — sai do loop de retries
+
+      } catch (err: unknown) {
+        const isAbort  = err instanceof Error && err.name === 'AbortError'
+        const isLast   = attempt === MAX_RETRIES
+
+        if (isLast) {
+          // Esgotou todas as tentativas — modo de fallback gracioso
+          const reason = isAbort
+            ? 'Tempo de resposta excedido (5s)'
+            : 'Serviço indisponível no momento'
+
+          setCepError(
+            `${reason}. Preencha o endereço manualmente — o imóvel será salvo normalmente.`
+          )
+          setCepSuccess(false)
+          setCepLoading(false)
+          console.warn(`[CEP] Falhou após ${MAX_RETRIES} tentativas para CEP ${cleanCep}:`, err)
+          return
+        }
+
+        // Exponential backoff antes de retry: 500ms, 1000ms, 2000ms
+        const backoffMs = 500 * Math.pow(2, attempt - 1)
+        console.warn(`[CEP] Tentativa ${attempt} falhou. Retry em ${backoffMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+      }
+    }
+  }
+
+  // Formata CEP enquanto digita (XXXXX-XXX) e dispara lookup automático
+  const handleCepChange = (value: string) => {
+    const cleanValue = value.replace(/\D/g, '').slice(0, 8)
+    const formattedValue = cleanValue.length > 5
+      ? `${cleanValue.slice(0, 5)}-${cleanValue.slice(5)}`
+      : cleanValue
+    setZipCode(formattedValue)
+    setCepError('')
+    setCepSuccess(false)
+    // Auto-lookup ao completar 8 dígitos
+    if (cleanValue.length === 8) {
+      lookupCEP(cleanValue)
+    }
+  }
+
+  // Monta a string de endereço completo para geocoding (backward-compatible)
+  const composeLocation = () => {
+    const parts: string[] = []
+    if (street)        parts.push(street)
+    if (addressNumber) parts.push(addressNumber)
+    if (complement)    parts.push(complement)
+    if (neighborhood)  parts.push(`- ${neighborhood}`)
+    if (city && addressState) parts.push(`${city} - ${addressState}`)
+    else if (city)     parts.push(city)
+    if (zipCode)       parts.push(zipCode.replace(/\D/g, ''))
+    return parts.join(', ').replace(', -', ' -')
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     
@@ -126,6 +256,40 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   // Form Submit
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // ── Client-Side Address Validation ────────────────────────────────────────
+    // Validates before sending to server. Highlights invalid fields inline.
+    const newErrors: Record<string, string> = {}
+
+    // Cidade é obrigatória para garantir qualidade do geocoding
+    if (!city.trim()) {
+      newErrors.city = 'Cidade é obrigatória para localização no mapa'
+    }
+
+    // Se CEP foi preenchido, deve ter 8 dígitos
+    const cleanZip = zipCode.replace(/\D/g, '')
+    if (cleanZip.length > 0 && cleanZip.length !== 8) {
+      newErrors.zipCode = 'CEP deve ter 8 dígitos (formato: XXXXX-XXX)'
+    }
+
+    // Se estado foi preenchido, deve ser UF válida
+    const VALID_UF = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
+    if (addressState && !VALID_UF.includes(addressState.toUpperCase())) {
+      newErrors.state = 'Selecione um estado válido'
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setAddressErrors(newErrors)
+      setIsSaving(false)
+      // Navega para a aba básica e faz scroll até o bloco de endereço
+      setActiveTab('basic')
+      setTimeout(() => {
+        document.getElementById('addressBlock')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+      return
+    }
+
+    setAddressErrors({})
     setIsSaving(true)
 
     const descElement = document.getElementById('richTextDescription')
@@ -135,7 +299,14 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
 
     const payload = {
       title, code, transactionType, category: selectedCategory, propertyType: selectedType,
-      location, description: descriptionRef.current, 
+      location: composeLocation(), description: descriptionRef.current,
+      street: street || null,
+      number: addressNumber || null,
+      complement: complement || null,
+      neighborhood: neighborhood || null,
+      city: city || null,
+      state: addressState || null,
+      zipCode: cleanZip || null,
       price: parseCurrencyToNumber(price), 
       rentPrice: parseCurrencyToNumber(rentPrice), 
       condoPrice: parseCurrencyToNumber(condoPrice), 
@@ -250,13 +421,98 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label>Endereço / Localização</label>
-                <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Rua das Flores, 123 - Centro, Garopaba - SC" required />
-                <small style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  ✓ Coordenadas GPS serão obtidas automaticamente pelo endereço
-                </small>
+              {/* ── Structured Address Block – Part 1 ── */}
+              <div id="addressBlock" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '1rem', color: '#10b981' }}>📍</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Endereço do Imóvel</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', marginLeft: '0.25rem' }}>— Coordenadas GPS obtidas automaticamente</span>
+                </div>
+                {/* CEP row */}
+                <div className={styles.grid2} style={{ alignItems: 'flex-start' }}>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>CEP <span style={{ color: '#94a3b8', fontWeight: 400 }}>(auto-preenchimento)</span></label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={zipCode}
+                        onChange={e => handleCepChange(e.target.value)}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        style={{ flex: 1, borderColor: addressErrors.zipCode ? '#ef4444' : undefined }}
+                        onFocus={() => setAddressErrors(prev => { const n = {...prev}; delete n.zipCode; return n })}
+                      />
+                      <button type="button" onClick={() => lookupCEP(zipCode)} disabled={cepLoading || zipCode.replace(/\D/g, '').length !== 8}
+                        style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', padding: '0 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', opacity: (cepLoading || zipCode.replace(/\D/g, '').length !== 8) ? 0.5 : 1, transition: '0.2s' }}>
+                        {cepLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={14} />}
+                        {cepLoading ? 'Buscando...' : 'Buscar'}
+                      </button>
+                    </div>
+                    {addressErrors.zipCode && <small style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✗ {addressErrors.zipCode}</small>}
+                    {!addressErrors.zipCode && cepError && <small style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✗ {cepError}</small>}
+                    {cepSuccess && <small style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✓ Endereço encontrado e preenchido automaticamente</small>}
+                  </div>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>Estado (UF)</label>
+                    <select
+                      value={addressState}
+                      onChange={e => { setAddressState(e.target.value); setAddressErrors(prev => { const n = {...prev}; delete n.state; return n }) }}
+                      style={{ borderColor: addressErrors.state ? '#ef4444' : undefined }}
+                    >
+                      <option value="">Selecione...</option>
+                      {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => (
+                        <option key={uf} value={uf}>{uf}</option>
+                      ))}
+                    </select>
+                    {addressErrors.state && <small style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✗ {addressErrors.state}</small>}
+                  </div>
+                </div>
+                {/* Street + Number row */}
+                <div className={styles.grid2} style={{ alignItems: 'flex-start' }}>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>Logradouro / Rua</label>
+                    <input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="Ex: Rua das Flores" />
+                  </div>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>Número</label>
+                    <input id="addressNumber" type="text" value={addressNumber} onChange={e => setAddressNumber(e.target.value)} placeholder="Ex: 123 ou S/N" />
+                  </div>
+                </div>
+                {/* Complement + Neighborhood row */}
+                <div className={styles.grid2} style={{ alignItems: 'flex-start' }}>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>Complemento <span style={{ color: '#94a3b8', fontWeight: 400 }}>(opcional)</span></label>
+                    <input type="text" value={complement} onChange={e => setComplement(e.target.value)} placeholder="Ex: Apto 42, Bloco B" />
+                  </div>
+                  <div className={styles.formGroup} style={{ margin: 0 }}>
+                    <label>Bairro</label>
+                    <input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value)} placeholder="Ex: Centro" />
+                  </div>
+                </div>
+                {/* City — required */}
+                <div className={styles.formGroup} style={{ margin: 0 }}>
+                  <label>
+                    Cidade <span style={{ color: '#ef4444' }}>*</span>
+                    <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: '0.25rem' }}>(obrigatório para localização no mapa)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={e => { setCity(e.target.value); setAddressErrors(prev => { const n = {...prev}; delete n.city; return n }) }}
+                    placeholder="Ex: Garopaba"
+                    style={{ borderColor: addressErrors.city ? '#ef4444' : undefined }}
+                  />
+                  {addressErrors.city && <small style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✗ {addressErrors.city}</small>}
+                </div>
+                {/* Address preview */}
+                {(street || city || neighborhood) && (
+                  <div style={{ background: '#fff', border: '1px solid #d1fae5', borderRadius: '8px', padding: '0.65rem 0.9rem', fontSize: '0.82rem', color: '#065f46', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                    <span style={{ flexShrink: 0 }}>📋</span>
+                    <span><strong>Endereço completo:</strong> {composeLocation() || '—'}</span>
+                  </div>
+                )}
               </div>
+
 
               <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>

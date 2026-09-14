@@ -12,6 +12,13 @@ export function serializeProperty(p: Property): PropertyDTO {
     areaUseful: p.areaUseful ? parseFloat(p.areaUseful.toString()) : null,
     latitude: p.latitude ?? null,
     longitude: p.longitude ?? null,
+    street: p.street ?? null,
+    number: p.number ?? null,
+    complement: p.complement ?? null,
+    neighborhood: p.neighborhood ?? null,
+    city: p.city ?? null,
+    state: p.state ?? null,
+    zipCode: p.zipCode ?? null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };
