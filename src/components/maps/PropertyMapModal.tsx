@@ -95,10 +95,30 @@ function PropertyMapContent({
           >
             {hasCoordinates && (
               <AdvancedMarker position={position} onClick={() => setShowInfoWindow(true)}>
-                <div className={styles.customMarker}>
-                  <div className={styles.markerIcon}>
-                    <MapPin size={28} fill="#d4af37" color="#0f172a" />
+                <div className={styles.enterpriseMarker}>
+                  <div className={styles.markerPulse} />
+                  <div className={styles.markerPulse2} />
+                  <div className={styles.markerBody}>
+                    <svg width="52" height="64" viewBox="0 0 52 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="pinGrad" x1="0" y1="0" x2="52" y2="64" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#f5d060" />
+                          <stop offset="100%" stopColor="#b8963a" />
+                        </linearGradient>
+                        <filter id="pinShadow" x="-30%" y="-10%" width="160%" height="160%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.45" />
+                        </filter>
+                      </defs>
+                      <path
+                        d="M26 2C14.954 2 6 10.954 6 22C6 35.5 26 62 26 62C26 62 46 35.5 46 22C46 10.954 37.046 2 26 2Z"
+                        fill="url(#pinGrad)"
+                        filter="url(#pinShadow)"
+                      />
+                      <circle cx="26" cy="22" r="11" fill="#0f172a" opacity="0.9" />
+                      <path d="M26 13L18 20V30H22V25H30V30H34V20L26 13Z" fill="#f5d060" />
+                    </svg>
                   </div>
+                  <div className={styles.markerShadowDot} />
                 </div>
               </AdvancedMarker>
             )}

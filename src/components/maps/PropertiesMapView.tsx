@@ -105,7 +105,11 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
             {propertiesWithCoords.map((property) => (
               <AdvancedMarker key={property.id} position={{ lat: property.latitude!, lng: property.longitude! }} onClick={() => setSelectedProperty(property)}>
                 <div className={`${styles.priceMarker} ${selectedProperty?.id === property.id ? styles.active : ''}`}>
-                  <Home size={14} />{formatPrice(Number(property.price) || Number(property.rentPrice) || 0)}
+                  <span className={styles.priceMarkerInner}>
+                    <Home size={12} />
+                    <span>{formatPrice(Number(property.price) || Number(property.rentPrice) || 0)}</span>
+                  </span>
+                  <div className={styles.priceMarkerArrow} />
                 </div>
               </AdvancedMarker>
             ))}
