@@ -79,3 +79,14 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # ---------------------------------------------------------------------------
+  # Google Maps API (BUILD + RUNTIME)
+  # ---------------------------------------------------------------------------
+  # Used for embedded maps in property details and listing pages
+  # ---------------------------------------------------------------------------
+  - variable: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    secret: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME

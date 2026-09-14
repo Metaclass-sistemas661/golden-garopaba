@@ -79,10 +79,6 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [videoLink, setVideoLink] = useState(initialData?.videoLink || '')
   const [financeable, setFinanceable] = useState(initialData?.financeable || false)
 
-  // Geolocation
-  const [latitude, setLatitude] = useState(initialData?.latitude?.toString() || '')
-  const [longitude, setLongitude] = useState(initialData?.longitude?.toString() || '')
-
   // Comandos do Rich Text Editor Nativo
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
@@ -150,9 +146,8 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
       suites: suites ? Number(suites) : 0, 
       bathrooms: bathrooms ? Number(bathrooms) : 0, 
       parkingSpaces: parkingSpaces ? Number(parkingSpaces) : 0,
-      features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable, featured, status,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null
+      features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable, featured, status
+      // latitude/longitude são gerados automaticamente pelo servidor via geocoding
     }
 
     const res = await saveProperty(payload, isEdit, initialData?.id)
@@ -257,32 +252,10 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
 
               <div className={styles.formGroup}>
                 <label>Endereço / Localização</label>
-                <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Centro, Garopaba - SC" required />
-              </div>
-
-              {/* Geolocalização */}
-              <div className={styles.formRow} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className={styles.formGroup}>
-                  <label>Latitude</label>
-                  <input 
-                    type="text" 
-                    value={latitude} 
-                    onChange={e => setLatitude(e.target.value)} 
-                    placeholder="Ex: -28.0275" 
-                  />
-                  <small style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                    Copie do Google Maps (clique com botão direito no local)
-                  </small>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Longitude</label>
-                  <input 
-                    type="text" 
-                    value={longitude} 
-                    onChange={e => setLongitude(e.target.value)} 
-                    placeholder="Ex: -48.6178" 
-                  />
-                </div>
+                <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Rua das Flores, 123 - Centro, Garopaba - SC" required />
+                <small style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  ✓ Coordenadas GPS serão obtidas automaticamente pelo endereço
+                </small>
               </div>
 
               <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

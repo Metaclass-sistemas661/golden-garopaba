@@ -3,6 +3,29 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
+// Geocoding function using Google Maps API
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!apiKey || !address) return null
+
+  try {
+    const encodedAddress = encodeURIComponent(address)
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&region=br`
+    )
+    const data = await response.json()
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location
+      return { lat: location.lat, lng: location.lng }
+    }
+    return null
+  } catch (error) {
+    console.error('Geocoding error:', error)
+    return null
+  }
+}
+
 // Note: O upload das fotos será feito no lado do Cliente (Supabase JS) 
 // antes de chamar essa função, passando as URLs já prontas aqui.
 export interface PropertyPayload {
@@ -41,6 +64,22 @@ export interface PropertyPayload {
 
 export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
   try {
+    // Auto-geocoding: Se não tiver coordenadas, busca automaticamente pelo endereço
+    let latitude = data.latitude ? Number(data.latitude) : null
+    let longitude = data.longitude ? Number(data.longitude) : null
+    
+    if ((!latitude || !longitude) && data.location) {
+      console.log('🗺️ Geocoding address:', data.location)
+      const coords = await geocodeAddress(data.location)
+      if (coords) {
+        latitude = coords.lat
+        longitude = coords.lng
+        console.log('✅ Geocoding success:', coords)
+      } else {
+        console.log('⚠️ Geocoding failed for:', data.location)
+      }
+    }
+
     const payload = {
       title: data.title,
       code: data.code,
@@ -71,8 +110,8 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       financeable: data.financeable || false,
       featured: data.featured || false,
       status: (data.status || 'AVAILABLE') as import('@prisma/client').PropertyStatus,
-      latitude: data.latitude ? Number(data.latitude) : null,
-      longitude: data.longitude ? Number(data.longitude) : null
+      latitude,
+      longitude
     }
 
     if (isEdit && id) {
