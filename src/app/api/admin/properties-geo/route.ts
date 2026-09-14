@@ -1,10 +1,24 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    // =========================================================================
+    // Authentication Check - Only authenticated users can access admin API
+    // =========================================================================
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // =========================================================================
+    // Fetch properties with geolocation data
+    // =========================================================================
     const properties = await prisma.property.findMany({
       select: {
         id: true,
