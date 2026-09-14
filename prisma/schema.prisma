@@ -52,6 +52,10 @@ model Property {
   photos          String[]
   tourLink        String?
   videoLink       String?
+  
+  // Geolocalização
+  latitude        Float?
+  longitude       Float?
   financeable     Boolean          @default(false)
   featured        Boolean          @default(false)
 

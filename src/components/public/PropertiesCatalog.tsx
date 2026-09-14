@@ -4,9 +4,10 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './PropertiesCatalog.module.css'
-import { MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown } from 'lucide-react'
+import { MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, Map } from 'lucide-react'
 import FilterModal, { FilterState } from './FilterModal'
 import { PropertyDTO } from '@/types/dto'
+import PropertiesMapView from '@/components/maps/PropertiesMapView'
 
 interface PropertiesCatalogProps {
   mode: 'SALE' | 'RENT' | 'LANCAMENTO'
@@ -34,6 +35,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
 
   // Modal State
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const [isMapOpen, setIsMapOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>(initialFilters)
 
   // Lê os parâmetros da URL (da busca rápida da Home)
@@ -219,6 +221,14 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                 {activeFiltersCount > 0 && <span className={styles.filterBadge}>{activeFiltersCount}</span>}
               </button>
 
+              <button
+                className={styles.openMapBtn}
+                onClick={() => setIsMapOpen(true)}
+              >
+                <Map size={18} />
+                Ver no Mapa
+              </button>
+
               <div className={styles.sortContainer} ref={sortRef}>
                 <label className={styles.sortLabel}>Ordenar por:</label>
                 <div className={styles.customSort} onClick={() => setIsSortOpen(!isSortOpen)}>
@@ -362,6 +372,14 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
           setCurrentPage(1) // Volta pra primeira página ao filtrar
         }}
         totalResults={filteredProperties.length}
+        mode={mode}
+      />
+
+      {/* Modal de Mapa */}
+      <PropertiesMapView
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        properties={filteredProperties}
         mode={mode}
       />
     </div>

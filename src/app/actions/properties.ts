@@ -35,6 +35,8 @@ export interface PropertyPayload {
   financeable?: boolean;
   featured?: boolean;
   status?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
@@ -68,7 +70,9 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       videoLink: data.videoLink || null,
       financeable: data.financeable || false,
       featured: data.featured || false,
-      status: (data.status || 'AVAILABLE') as import('@prisma/client').PropertyStatus
+      status: (data.status || 'AVAILABLE') as import('@prisma/client').PropertyStatus,
+      latitude: data.latitude ? Number(data.latitude) : null,
+      longitude: data.longitude ? Number(data.longitude) : null
     }
 
     if (isEdit && id) {

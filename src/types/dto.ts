@@ -7,6 +7,8 @@ export type PropertyDTO = Omit<Property, 'price' | 'rentPrice' | 'condoPrice' | 
   iptuPrice: number | null;
   areaTotal: number | null;
   areaUseful: number | null;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: string;
   updatedAt: string;
 }

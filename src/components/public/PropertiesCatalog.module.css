@@ -78,6 +78,28 @@
   background: #f9f9f9;
 }
 
+/* Botão Ver no Mapa */
+.openMapBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border: 1px solid #d4af37;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+  color: #8b7328;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.openMapBtn:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+  border-color: #b8963a;
+  color: #6b5a1e;
+}
+
 .filterBadge {
   background: var(--color-primary);
   color: #fff;

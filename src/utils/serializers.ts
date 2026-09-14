@@ -10,6 +10,8 @@ export function serializeProperty(p: Property): PropertyDTO {
     iptuPrice: p.iptuPrice ? parseFloat(p.iptuPrice.toString()) : null,
     areaTotal: p.areaTotal ? parseFloat(p.areaTotal.toString()) : null,
     areaUseful: p.areaUseful ? parseFloat(p.areaUseful.toString()) : null,
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };

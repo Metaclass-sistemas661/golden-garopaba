@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MapPin, Bed, Bath, Square, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
 import styles from './PropertyDetails.module.css'
 import { PropertyDTO } from '@/types/dto'
+import PropertyMapModal from '@/components/maps/PropertyMapModal'
 
 interface PropertyDetailsProps {
   property: PropertyDTO
@@ -16,6 +17,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isMapOpen, setIsMapOpen] = useState(false)
 
   const openGallery = (index: number) => {
     setActivePhotoIndex(index)
@@ -38,7 +40,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   }
 
   const handleMap = () => {
-    window.open(`https://maps.google.com/?q=${encodeURIComponent(property.location || '')}`, '_blank')
+    setIsMapOpen(true)
   }
 
   const formatPrice = (value: number) => {
@@ -314,6 +316,17 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           </div>
         </div>
       )}
+
+      {/* Modal do Mapa */}
+      <PropertyMapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        latitude={property.latitude}
+        longitude={property.longitude}
+        address={property.location}
+        propertyTitle={property.title}
+        propertyCode={property.code}
+      />
 
     </div>
   )
