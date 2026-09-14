@@ -23,6 +23,7 @@ export default function Sidebar() {
     { label: 'Dashboard', icon: Home, href: '/painel' },
     { label: 'Imóveis', icon: Building, href: '/painel/imoveis' },
     { label: 'Corretores', icon: Users, href: '/painel/corretores' },
+    { label: 'Mapa & Geo', icon: Settings, href: '/painel/geocoding' },
     { label: 'Configurações', icon: Settings, href: '/painel/configuracoes' },
   ]
 
