@@ -9,5 +9,15 @@
       "firebase-debug.*.log",
       "functions"
     ]
+  },
+  "auth": {
+    "authorizedDomains": [
+      "localhost",
+      "goldengaropaba.com.br",
+      "www.goldengaropaba.com.br",
+      "golden-garopaba2.web.app",
+      "golden-garopaba2.firebaseapp.com"
+    ]
   }
 }
+

@@ -41,8 +41,10 @@ export async function resetPassword(prevState: AuthState | undefined, formData: 
 
   const supabase = await createClient()
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://goldengaropaba.com.br'
+  
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/redefinir-senha`,
+    redirectTo: `${siteUrl}/redefinir-senha`,
   })
 
   if (error) {

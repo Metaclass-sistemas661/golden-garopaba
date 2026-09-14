@@ -62,3 +62,20 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # ---------------------------------------------------------------------------
+  # Site Configuration (BUILD + RUNTIME)
+  # ---------------------------------------------------------------------------
+  # Production domain for redirects, canonical URLs, and SEO
+  # ---------------------------------------------------------------------------
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: https://goldengaropaba.com.br
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_SITE_NAME
+    value: Golden Garopaba
+    availability:
+      - BUILD
+      - RUNTIME
