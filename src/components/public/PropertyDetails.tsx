@@ -1,6 +1,7 @@
-"use client"
+﻿"use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Bed, Bath, Square, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
@@ -18,8 +19,16 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Necessario para createPortal no SSR do Next.js
+  useEffect(() => { setMounted(true) }, [])
+
+  const photos = property.photos || []
+  const hasPhotos = photos.length > 0
 
   const openGallery = (index: number) => {
+    if (!hasPhotos) return
     setActivePhotoIndex(index)
     setIsGalleryOpen(true)
   }
@@ -27,19 +36,20 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   const closeGallery = () => setIsGalleryOpen(false)
 
   const nextPhoto = () => {
-    setActivePhotoIndex((prev) => (prev === property.photos.length - 1 ? 0 : prev + 1))
+    setActivePhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
   }
 
   const prevPhoto = () => {
-    setActivePhotoIndex((prev) => (prev === 0 ? property.photos.length - 1 : prev - 1))
+    setActivePhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
   }
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
-    alert("Link copiado para a área de transferência!")
+    alert("Link copiado para a area de transferencia!")
   }
 
-  const handleMap = (e: React.MouseEvent) => {
+  const handleOpenMap = (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
     setIsMapOpen(true)
   }
@@ -49,9 +59,8 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   }
 
   const handleWhatsappClick = () => {
-    // Número placeholder (será dinâmico no futuro via admin)
-    const phoneNumber = "5511999999999" 
-    const message = encodeURIComponent(`Olá, vi o imóvel código ${property.code} (${property.title}) no site e gostaria de mais informações.`)
+    const phoneNumber = "5511999999999"
+    const message = encodeURIComponent(`Ola, vi o imovel codigo ${property.code} (${property.title}) no site e gostaria de mais informacoes.`)
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
   }
 
@@ -66,15 +75,15 @@ export default function PropertyDetails({ property, similarProperties }: Propert
 
   return (
     <div className={styles.container}>
-      
-      {/* 1. Galeria de Imagens (Grid Assimétrico) */}
+
+      {/* 1. Galeria de Imagens (Grid Assimetrico) */}
       <section className={styles.gallerySection}>
         <div className={styles.galleryGrid}>
           {/* Foto Principal Esquerda */}
-          <div className={styles.mainPhotoWrapper} onClick={() => openGallery(0)} style={{cursor: 'pointer', position: 'relative'}}>
-            <Image 
-              src={property.photos[0] || '/placeholder.jpg'} 
-              alt={property.title} 
+          <div className={styles.mainPhotoWrapper} onClick={() => openGallery(0)} style={{cursor: hasPhotos ? 'pointer' : 'default', position: 'relative'}}>
+            <Image
+              src={photos[0] || '/placeholder.jpg'}
+              alt={property.title}
               className={styles.mainPhoto}
               fill unoptimized style={{ objectFit: 'cover' }}
             />
@@ -85,28 +94,28 @@ export default function PropertyDetails({ property, similarProperties }: Propert
             )}
             <div className={styles.photoOverlayTags}>
               <button className={styles.overlayBtn} onClick={(e) => { e.stopPropagation(); openGallery(0); }}>
-                <Home size={16} /> Fotos ({property.photos.length})
+                <Home size={16} /> Fotos ({photos.length})
               </button>
-              <button className={styles.overlayBtn} onClick={handleMap}>
+              <button className={styles.overlayBtn} onClick={handleOpenMap}>
                 <MapPin size={16} /> Mapa
               </button>
             </div>
           </div>
-          
+
           {/* Fotos Menores Direita */}
           <div className={styles.sidePhotos}>
             <div className={styles.sidePhotoWrapper} onClick={() => openGallery(1)} style={{cursor: 'pointer', position: 'relative'}}>
-              <Image 
-                src={property.photos[1] || property.photos[0]} 
-                alt={`${property.title} - Foto 2`} 
+              <Image
+                src={photos[1] || photos[0] || '/placeholder.jpg'}
+                alt={`${property.title} - Foto 2`}
                 className={styles.sidePhoto}
                 fill unoptimized style={{ objectFit: 'cover' }}
               />
             </div>
             <div className={styles.sidePhotoWrapper} onClick={() => openGallery(2)} style={{cursor: 'pointer', position: 'relative'}}>
-              <Image 
-                src={property.photos[2] || property.photos[0]} 
-                alt={`${property.title} - Foto 3`} 
+              <Image
+                src={photos[2] || photos[0] || '/placeholder.jpg'}
+                alt={`${property.title} - Foto 3`}
                 className={styles.sidePhoto}
                 fill unoptimized style={{ objectFit: 'cover' }}
               />
@@ -303,7 +312,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
             <button className={styles.navBtn} onClick={prevPhoto} style={{ zIndex: 10 }}><ChevronLeft size={36} /></button>
             
             <Image 
-              src={property.photos[activePhotoIndex]} 
+              src={photos[activePhotoIndex] || "/placeholder.jpg"} 
               alt={`Foto ${activePhotoIndex + 1}`} 
               className={styles.modalImg}
               fill unoptimized style={{ objectFit: 'contain' }}
@@ -313,21 +322,24 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           </div>
           
           <div className={styles.photoCounter}>
-            {activePhotoIndex + 1} / {property.photos.length}
+            {activePhotoIndex + 1} / {photos.length}
           </div>
         </div>
       )}
 
-      {/* Modal do Mapa */}
-      <PropertyMapModal
-        isOpen={isMapOpen}
-        onClose={() => setIsMapOpen(false)}
-        latitude={property.latitude}
-        longitude={property.longitude}
-        address={property.location}
-        propertyTitle={property.title}
-        propertyCode={property.code}
-      />
+      {/* Modal do Mapa - renderizado via Portal no body para evitar conflitos de z-index e overflow */}
+      {mounted && createPortal(
+        <PropertyMapModal
+          isOpen={isMapOpen}
+          onClose={() => setIsMapOpen(false)}
+          latitude={property.latitude}
+          longitude={property.longitude}
+          address={property.location}
+          propertyTitle={property.title}
+          propertyCode={property.code}
+        />,
+        document.body
+      )}
 
     </div>
   )
