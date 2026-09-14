@@ -12,27 +12,26 @@ runConfig:
   # Minimum instances: 0 allows scale-to-zero for cost optimization
   # Set to 1+ in production for reduced cold start latency
   minInstances: 0
-  
   # Maximum instances: controls cost ceiling and capacity
   # maxInstances: 100
-  
+
   # Concurrency: requests per instance (default: 80)
   # Lower values = more instances = higher cost but better isolation
   # concurrency: 80
-  
+
   # CPU allocation: 1 = 1 vCPU (adequate for most Next.js apps)
   # cpu: 1
-  
+
   # Memory: 512 MiB is minimum for Next.js with Prisma
   # Increase to 1024 if you experience OOM errors
   # memoryMiB: 512
 
-# -----------------------------------------------------------------------------
-# Environment Variables and Secrets
-# -----------------------------------------------------------------------------
-# IMPORTANT: Variables prefixed with NEXT_PUBLIC_ must be available at BUILD
-# time because Next.js inlines them during compilation. Use availability: [BUILD, RUNTIME]
-# -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
+  # Environment Variables and Secrets
+  # -----------------------------------------------------------------------------
+  # IMPORTANT: Variables prefixed with NEXT_PUBLIC_ must be available at BUILD
+  # time because Next.js inlines them during compilation. Use availability: [BUILD, RUNTIME]
+  # -----------------------------------------------------------------------------
 env:
   # ---------------------------------------------------------------------------
   # Database Configuration (Runtime Only)
@@ -40,7 +39,7 @@ env:
   # These are server-side only and don't need to be available at build time
   - variable: DATABASE_URL
     secret: DATABASE_URL
-    
+
   - variable: DIRECT_URL
     secret: DIRECT_URL
 
@@ -56,7 +55,7 @@ env:
     availability:
       - BUILD
       - RUNTIME
-      
+
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
     secret: NEXT_PUBLIC_SUPABASE_ANON_KEY
     availability:
@@ -89,4 +88,16 @@ env:
     secret: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     availability:
       - BUILD
+      - RUNTIME
+
+  # ---------------------------------------------------------------------------
+  # Google Maps API Key (Server-side only — Geocoding API)
+  # ---------------------------------------------------------------------------
+  # Used exclusively on server-side (Server Actions) for address geocoding.
+  # NEVER exposed to client. Separate from NEXT_PUBLIC_ to allow stricter
+  # IP/server restriction policies on Google Cloud Console.
+  # ---------------------------------------------------------------------------
+  - variable: GOOGLE_MAPS_API_KEY
+    secret: GOOGLE_MAPS_API_KEY
+    availability:
       - RUNTIME
