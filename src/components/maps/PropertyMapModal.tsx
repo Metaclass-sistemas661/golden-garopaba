@@ -84,13 +84,14 @@ function PropertyMapContent({
           <Map
             defaultZoom={hasCoordinates ? 17 : 14}
             defaultCenter={position}
-            mapId="golden-garopaba-map"
+            mapId="golden-properties-map"
             mapTypeId={mapType}
             gestureHandling="greedy"
             disableDefaultUI={false}
             zoomControl={true}
             streetViewControl={true}
             fullscreenControl={true}
+            style={{ width: '100%', height: '100%' }}
           >
             {hasCoordinates && (
               <AdvancedMarker position={position} onClick={() => setShowInfoWindow(true)}>

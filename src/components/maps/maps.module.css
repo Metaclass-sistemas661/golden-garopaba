@@ -144,12 +144,12 @@
 /* Map Wrapper */
 .mapWrapper {
   position: relative;
-  flex: 1;
-  min-height: 400px;
-  max-height: 60vh;
+  height: 450px;
+  min-height: 350px;
+  overflow: hidden;
 }
 
-.mapWrapper > div { width: 100%; height: 100%; }
+.mapWrapper > div,.mapWrapper > div > div { width: 100% !important; height: 100% !important; }
 
 /* No Coordinates Overlay */
 .noCoordinatesOverlay {
@@ -585,3 +585,5 @@
 }
 
 .modalFooter svg { color: #d4af37; flex-shrink: 0; }
+
+
