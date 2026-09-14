@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Building, Users, Settings, LogOut, PanelLeftClose, PanelLeftOpen, MapPin } from 'lucide-react'
+import { Home, Building, Users, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import styles from './Sidebar.module.css'
 
@@ -23,7 +23,7 @@ export default function Sidebar() {
     { label: 'Dashboard', icon: Home, href: '/painel' },
     { label: 'Imóveis', icon: Building, href: '/painel/imoveis' },
     { label: 'Corretores', icon: Users, href: '/painel/corretores' },
-    { label: 'Geocoding', icon: MapPin, href: '/painel/geocoding' },
+    { label: 'Geocoding', icon: Globe, href: '/painel/geocoding' },
     { label: 'Configurações', icon: Settings, href: '/painel/configuracoes' },
   ]
 
