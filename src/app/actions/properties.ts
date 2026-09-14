@@ -48,8 +48,12 @@ async function geocodeAddress(address: string, retries = 2): Promise<{ lat: numb
       
       console.log(`🗺️ [GEOCODING] Tentativa ${attempt + 1}/${retries + 1} para: "${normalizedAddress}"`)
       
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://goldengaropaba.com.br';
       const response = await fetch(url, {
         signal: AbortSignal.timeout(10000), // 10s timeout
+        headers: {
+          'Referer': siteUrl
+        }
       })
       
       if (!response.ok) {

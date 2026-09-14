@@ -23,7 +23,11 @@ async function geocodeSingle(address: string): Promise<{ lat: number; lng: numbe
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(normalized)}&key=${apiKey}&region=br&language=pt-BR`
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://goldengaropaba.com.br';
+    const res = await fetch(url, { 
+      signal: AbortSignal.timeout(10000),
+      headers: { 'Referer': siteUrl }
+    })
     if (!res.ok) return null
     const data = await res.json()
 

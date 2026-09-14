@@ -58,6 +58,10 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [iptuPrice, setIptuPrice] = useState(initialData?.iptuPrice ? formatCurrency(Number(initialData.iptuPrice)) : '')
   const [featured, setFeatured] = useState(initialData?.featured || false)
   
+  // Coordinates
+  const [latitude, setLatitude] = useState(initialData?.latitude?.toString() || '')
+  const [longitude, setLongitude] = useState(initialData?.longitude?.toString() || '')
+  
   // Tech details
   const [areaTotal, setAreaTotal] = useState(initialData?.areaTotal?.toString() || '')
   const [areaUseful, setAreaUseful] = useState(initialData?.areaUseful?.toString() || '')
@@ -317,8 +321,9 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
       suites: suites ? Number(suites) : 0, 
       bathrooms: bathrooms ? Number(bathrooms) : 0, 
       parkingSpaces: parkingSpaces ? Number(parkingSpaces) : 0,
-      features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable, featured, status
-      // latitude/longitude são gerados automaticamente pelo servidor via geocoding
+      features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable, featured, status,
+      latitude: latitude ? Number(latitude) : undefined,
+      longitude: longitude ? Number(longitude) : undefined
     }
 
     const res = await saveProperty(payload, isEdit, initialData?.id)
@@ -511,6 +516,26 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                     <span><strong>Endereço completo:</strong> {composeLocation() || '—'}</span>
                   </div>
                 )}
+                {/* Manual Coordinates Override */}
+                <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px dashed #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.9rem', color: '#3b82f6' }}>⚙️</span>
+                    <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem' }}>Ajuste Manual de Coordenadas (Opcional)</span>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                    Se deixado em branco, o sistema tentará buscar as coordenadas automaticamente pelo endereço. Preencha apenas se quiser forçar uma localização exata.
+                  </p>
+                  <div className={styles.grid2} style={{ alignItems: 'flex-start' }}>
+                    <div className={styles.formGroup} style={{ margin: 0 }}>
+                      <label>Latitude</label>
+                      <input type="text" value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="Ex: -28.0275" />
+                    </div>
+                    <div className={styles.formGroup} style={{ margin: 0 }}>
+                      <label>Longitude</label>
+                      <input type="text" value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="Ex: -48.6178" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
 
