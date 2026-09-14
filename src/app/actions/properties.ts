@@ -3,27 +3,121 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
-// Geocoding function using Google Maps API
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+// ============================================================================
+// Enterprise-Grade Geocoding with retry, validation and detailed logging
+// ============================================================================
+function getGoogleMapsApiKey(): string | null {
+  // Server-side: prefer dedicated server key, fallback to public key
+  const key = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!key) {
+    console.error('❌ [GEOCODING] Nenhuma API Key do Google Maps configurada!')
+    console.error('   Configure GOOGLE_MAPS_API_KEY ou NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no .env')
+  }
+  return key || null
+}
+
+function normalizeAddress(address: string): string {
+  // Remove caracteres extras e normaliza o endereço para melhor resultado de geocoding
+  return address
+    .replace(/\s+/g, ' ')
+    .replace(/\s*-\s*/g, ' - ')
+    .trim()
+}
+
+function validateCoordinates(lat: number, lng: number): boolean {
+  // Validação enterprise: Coordenadas devem estar dentro do Brasil (-34 a 5 lat, -74 a -32 lng)
+  const isValidLat = lat >= -34.0 && lat <= 6.0
+  const isValidLng = lng >= -74.0 && lng <= -32.0
+  if (!isValidLat || !isValidLng) {
+    console.warn(`⚠️ [GEOCODING] Coordenadas fora do Brasil: lat=${lat}, lng=${lng}`)
+  }
+  return isValidLat && isValidLng
+}
+
+async function geocodeAddress(address: string, retries = 2): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = getGoogleMapsApiKey()
   if (!apiKey || !address) return null
 
-  try {
-    const encodedAddress = encodeURIComponent(address)
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&region=br`
-    )
-    const data = await response.json()
-    
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const location = data.results[0].geometry.location
-      return { lat: location.lat, lng: location.lng }
+  const normalizedAddress = normalizeAddress(address)
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const encodedAddress = encodeURIComponent(normalizedAddress)
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&region=br&language=pt-BR`
+      
+      console.log(`🗺️ [GEOCODING] Tentativa ${attempt + 1}/${retries + 1} para: "${normalizedAddress}"`)
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000), // 10s timeout
+      })
+      
+      if (!response.ok) {
+        console.error(`❌ [GEOCODING] HTTP ${response.status}: ${response.statusText}`)
+        if (attempt < retries) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue }
+        return null
+      }
+
+      const data = await response.json()
+      
+      // Detailed logging for debugging
+      console.log(`📍 [GEOCODING] Status da API: ${data.status}`)
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const location = data.results[0].geometry.location
+        const formattedAddress = data.results[0].formatted_address
+        
+        if (validateCoordinates(location.lat, location.lng)) {
+          console.log(`✅ [GEOCODING] Sucesso: ${formattedAddress} → (${location.lat}, ${location.lng})`)
+          return { lat: location.lat, lng: location.lng }
+        } else {
+          console.warn(`⚠️ [GEOCODING] Coordenadas inválidas para Brasil, ignorando resultado`)
+          return null
+        }
+      }
+      
+      // Handle specific API error statuses
+      if (data.status === 'ZERO_RESULTS') {
+        console.warn(`⚠️ [GEOCODING] Nenhum resultado para: "${normalizedAddress}"`)
+        // Try with a simplified address (just city + state) as fallback
+        if (attempt === 0 && normalizedAddress.includes('-')) {
+          const parts = normalizedAddress.split('-')
+          if (parts.length >= 2) {
+            const simplified = parts.slice(-2).join(' - ').trim()
+            console.log(`🔄 [GEOCODING] Tentando endereço simplificado: "${simplified}"`)
+            const fallback = await geocodeAddress(simplified, 0) // No recursion beyond this
+            if (fallback) return fallback
+          }
+        }
+        return null
+      }
+      
+      if (data.status === 'OVER_QUERY_LIMIT') {
+        console.error('❌ [GEOCODING] Limite de requisições da API excedido')
+        if (attempt < retries) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue }
+        return null
+      }
+      
+      if (data.status === 'REQUEST_DENIED') {
+        console.error('❌ [GEOCODING] Requisição negada. Verifique:')
+        console.error('   1. A API Key está válida')
+        console.error('   2. A Geocoding API está habilitada no Google Cloud Console')
+        console.error('   3. Não há restrições de IP/referrer bloqueando')
+        console.error(`   Detalhes: ${data.error_message || 'N/A'}`)
+        return null
+      }
+      
+      console.error(`❌ [GEOCODING] Status inesperado: ${data.status}`, data.error_message || '')
+      return null
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error(`❌ [GEOCODING] Erro na tentativa ${attempt + 1}: ${errorMsg}`)
+      if (attempt < retries) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue }
+      return null
     }
-    return null
-  } catch (error) {
-    console.error('Geocoding error:', error)
-    return null
   }
+  
+  return null
 }
 
 // Note: O upload das fotos será feito no lado do Cliente (Supabase JS) 
@@ -64,19 +158,47 @@ export interface PropertyPayload {
 
 export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
   try {
-    // Auto-geocoding: Se não tiver coordenadas, busca automaticamente pelo endereço
+    // ========================================================================
+    // Enterprise Geocoding: Auto-resolve coordinates from address
+    // ========================================================================
     let latitude = data.latitude ? Number(data.latitude) : null
     let longitude = data.longitude ? Number(data.longitude) : null
     
+    // Se estiver editando e o endereço mudou, forçar novo geocoding
+    if (isEdit && id && data.location) {
+      try {
+        const existing = await prisma.property.findUnique({
+          where: { id },
+          select: { location: true, latitude: true, longitude: true }
+        })
+        if (existing && existing.location !== data.location) {
+          console.log('📝 [SAVE] Endereço alterado, forçando novo geocoding')
+          console.log(`   Anterior: "${existing.location}"`)
+          console.log(`   Novo: "${data.location}"`)
+          latitude = null
+          longitude = null
+        } else if (existing?.latitude && existing?.longitude && !latitude && !longitude) {
+          // Manter coordenadas existentes se endereço não mudou
+          latitude = existing.latitude
+          longitude = existing.longitude
+          console.log(`📍 [SAVE] Mantendo coordenadas existentes: (${latitude}, ${longitude})`)
+        }
+      } catch (lookupErr) {
+        console.warn('⚠️ [SAVE] Erro ao buscar imóvel existente para comparação:', lookupErr)
+      }
+    }
+    
+    // Geocoding automático quando necessário
     if ((!latitude || !longitude) && data.location) {
-      console.log('🗺️ Geocoding address:', data.location)
+      console.log('🗺️ [SAVE] Iniciando geocoding para:', data.location)
       const coords = await geocodeAddress(data.location)
       if (coords) {
         latitude = coords.lat
         longitude = coords.lng
-        console.log('✅ Geocoding success:', coords)
+        console.log(`✅ [SAVE] Geocoding OK: (${coords.lat}, ${coords.lng})`)
       } else {
-        console.log('⚠️ Geocoding failed for:', data.location)
+        console.warn(`⚠️ [SAVE] Geocoding falhou para: "${data.location}"`)
+        console.warn('   O imóvel será salvo SEM coordenadas. Use /painel/geocoding para corrigir.')
       }
     }
 

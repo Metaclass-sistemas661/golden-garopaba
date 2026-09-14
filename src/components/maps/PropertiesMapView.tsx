@@ -97,6 +97,8 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
             <div className={styles.noPropertiesMessage}>
               <MapPin size={48} /><h3>Nenhum imóvel com localização</h3>
               <p>Os imóveis nesta categoria ainda não possuem coordenadas cadastradas.</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem' }}>As coordenadas são geradas automaticamente ao salvar um imóvel.</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>Acesse o Painel → Geocodificação para processar todos de uma vez.</p>
             </div>
           )}
           <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId="golden-properties-map" mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
