@@ -26,14 +26,15 @@ const formatPrice = (value: number) => {
 
 function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 'isOpen'>) {
   const [selectedProperty, setSelectedProperty] = useState<PropertyDTO | null>(null)
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [mapType, setMapType] = useState<'roadmap' | 'satellite' | 'hybrid'>('roadmap')
 
-  const propertiesWithCoords = useMemo(() => 
-    properties.filter(p => p.latitude !== null && p.longitude !== null && 
+  const propertiesWithCoords = useMemo(() => properties.filter(
+    (p) => p.latitude !== null && p.longitude !== null &&
       typeof p.latitude === 'number' && typeof p.longitude === 'number' &&
-      !isNaN(p.latitude) && !isNaN(p.longitude)), [properties])
+      !isNaN(p.latitude) && !isNaN(p.longitude)
+  ), [properties])
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 500)
@@ -43,14 +44,16 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }), () => {})
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      )
     }
   }, [])
 
   const mapCenter = useMemo(() => {
     if (propertiesWithCoords.length > 0) {
-      const lats = propertiesWithCoords.map(p => p.latitude!)
-      const lngs = propertiesWithCoords.map(p => p.longitude!)
+      const lats = propertiesWithCoords.map((p) => p.latitude!)
+      const lngs = propertiesWithCoords.map((p) => p.longitude!)
       return { lat: (Math.min(...lats) + Math.max(...lats)) / 2, lng: (Math.min(...lngs) + Math.max(...lngs)) / 2 }
     }
     return userLocation || GAROPABA_CENTER
@@ -80,7 +83,6 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
         </div>
         <button className={styles.closeBtn} onClick={onClose}><X size={24} /></button>
       </div>
-
       <div className={styles.mapControlsInline}>
         <div className={styles.mapTypeSelector}>
           <button className={`${styles.mapTypeBtn} ${mapType === 'roadmap' ? styles.active : ''}`} onClick={() => setMapType('roadmap')}>Mapa</button>
@@ -88,19 +90,16 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
           <button className={`${styles.mapTypeBtn} ${mapType === 'hybrid' ? styles.active : ''}`} onClick={() => setMapType('hybrid')}>Híbrido</button>
         </div>
       </div>
-
       <div className={styles.propertiesMapContent}>
         <div className={styles.mapArea}>
-          {isLoading && (<div className={styles.mapLoading}><Loader2 size={48} className={styles.spinner} /><span>Carregando mapa...</span></div>)}
+          {isLoading && <div className={styles.mapLoading}><Loader2 size={48} className={styles.spinner} /><span>Carregando mapa...</span></div>}
           {propertiesWithCoords.length === 0 && !isLoading && (
             <div className={styles.noPropertiesMessage}>
               <MapPin size={48} /><h3>Nenhum imóvel com localização</h3>
               <p>Os imóveis nesta categoria ainda não possuem coordenadas cadastradas.</p>
-              <p className={styles.hint}>As coordenadas são geradas automaticamente ao salvar um imóvel.</p>
             </div>
           )}
-          <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId="golden-properties-map"
-            mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
+          <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId="golden-properties-map" mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
             {propertiesWithCoords.map((property) => (
               <AdvancedMarker key={property.id} position={{ lat: property.latitude!, lng: property.longitude! }} onClick={() => setSelectedProperty(property)}>
                 <div className={`${styles.priceMarker} ${selectedProperty?.id === property.id ? styles.active : ''}`}>
@@ -123,7 +122,9 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
         </div>
         <div className={styles.propertySidebar}>
           <div className={styles.sidebarHeader}><h3>Imóveis na região</h3><p>{propertiesWithCoords.length} resultados</p></div>
-          {propertiesWithCoords.length === 0 ? (<div className={styles.emptySidebar}><p>Nenhum imóvel com localização.</p></div>) : (
+          {propertiesWithCoords.length === 0 ? (
+            <div className={styles.emptySidebar}><p>Nenhum imóvel com localização.</p></div>
+          ) : (
             propertiesWithCoords.map((property) => (
               <div key={property.id} className={`${styles.propertyListItem} ${selectedProperty?.id === property.id ? styles.active : ''}`} onClick={() => setSelectedProperty(property)}>
                 <div className={styles.propertyThumb}><Image src={property.photos[0] || '/placeholder.jpg'} alt={property.title} fill style={{ objectFit: 'cover' }} unoptimized /></div>
