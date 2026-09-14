@@ -510,80 +510,79 @@
   border-color: #d4af37;
 }
 
-/* Price Marker — Enterprise Grade */
+/* ==========================================
+   PRICE MARKER - Estilo Airbnb/Zillow
+   SEM transform no wrapper (incompativel com AdvancedMarker)
+   ========================================== */
+
+/* Wrapper externo - apenas posicionamento e transicao */
 .priceMarker {
   position: relative;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  /* Offset anchor to pin bottom arrow */
-  transform: translate(-50%, -100%);
-  margin-bottom: 8px;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45));
-  transition: filter 0.18s, transform 0.18s;
+  transition: transform 0.18s ease, filter 0.18s ease;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
 }
 
+.priceMarker:hover {
+  transform: scale(1.1) translateY(-2px);
+  filter: drop-shadow(0 6px 14px rgba(212,175,55,0.55));
+}
+
+/* Pill principal com preco */
 .priceMarkerInner {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1.5px solid #d4af37;
-  color: #f8fafc;
-  padding: 0.35rem 0.7rem;
-  border-radius: 10px;
-  font-size: 0.78rem;
+  background: #0f172a;
+  border: 2px solid #d4af37;
+  color: #f1f5f9;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 4px;
   position: relative;
-  z-index: 2;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    0 2px 8px rgba(0,0,0,0.3);
+    0 2px 0 rgba(212,175,55,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  line-height: 1;
 }
 
 .priceMarkerInner svg {
   color: #d4af37;
   flex-shrink: 0;
+  width: 11px;
+  height: 11px;
 }
 
-/* Arrow notch below pill */
+/* Triangulo apontando para baixo - ancora no mapa */
 .priceMarkerArrow {
   width: 0;
   height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 7px solid #d4af37;
-  position: relative;
-  z-index: 1;
-  margin-top: -1px;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #d4af37;
+  margin-top: 0;
+  align-self: center;
 }
 
-.priceMarker:hover {
-  filter: drop-shadow(0 6px 16px rgba(212, 175, 55, 0.5));
-  transform: translate(-50%, -100%) scale(1.06);
-}
-
-.priceMarker:hover .priceMarkerInner {
-  background: linear-gradient(135deg, #2d3f5a 0%, #1e293b 100%);
-  border-color: #f5d060;
-  color: #fff;
-}
-
+/* Estado ATIVO (selecionado) */
 .priceMarker.active .priceMarkerInner {
-  background: linear-gradient(135deg, #f5d060 0%, #d4af37 100%);
+  background: #d4af37;
+  border-color: #d4af37;
   color: #0f172a;
-  border-color: #f5d060;
   box-shadow:
-    0 0 0 3px rgba(212, 175, 55, 0.3),
-    0 4px 12px rgba(212, 175, 55, 0.4),
-    inset 0 1px 0 rgba(255,255,255,0.3);
+    0 0 0 3px rgba(212,175,55,0.3),
+    0 4px 12px rgba(212,175,55,0.45);
 }
 
-.priceMarker.active .priceMarkerInner svg { color: #0f172a; }
+.priceMarker.active .priceMarkerInner svg {
+  color: #0f172a;
+}
 
 .priceMarker.active .priceMarkerArrow {
   border-top-color: #d4af37;

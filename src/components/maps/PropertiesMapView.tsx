@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps'
-import { X, MapPin, Home, ArrowLeft, Navigation, ExternalLink, Loader2 } from 'lucide-react'
+import { X, MapPin, ArrowLeft, Navigation, ExternalLink, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './maps.module.css'
@@ -105,10 +105,9 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
             {propertiesWithCoords.map((property) => (
               <AdvancedMarker key={property.id} position={{ lat: property.latitude!, lng: property.longitude! }} onClick={() => setSelectedProperty(property)}>
                 <div className={`${styles.priceMarker} ${selectedProperty?.id === property.id ? styles.active : ''}`}>
-                  <span className={styles.priceMarkerInner}>
-                    <Home size={12} />
-                    <span>{formatPrice(Number(property.price) || Number(property.rentPrice) || 0)}</span>
-                  </span>
+                  <div className={styles.priceMarkerInner}>
+                    {formatPrice(Number(property.price) || Number(property.rentPrice) || 0)}
+                  </div>
                   <div className={styles.priceMarkerArrow} />
                 </div>
               </AdvancedMarker>
