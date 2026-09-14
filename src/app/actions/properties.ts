@@ -172,3 +172,186 @@ export async function togglePropertyStatus(id: string, currentStatus: string) {
     return { success: false }
   }
 }
+
+// ============================================
+// GEOCODING UTILITIES
+// ============================================
+
+/**
+ * Geocodifica uma propriedade individual
+ * Útil para re-geocodificar propriedades com endereço atualizado
+ */
+export async function geocodeSingleProperty(propertyId: string) {
+  try {
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { id: true, location: true, latitude: true, longitude: true }
+    })
+
+    if (!property) {
+      return { success: false, error: 'Propriedade não encontrada' }
+    }
+
+    if (!property.location) {
+      return { success: false, error: 'Propriedade sem endereço cadastrado' }
+    }
+
+    const coords = await geocodeAddress(property.location)
+    if (!coords) {
+      return { success: false, error: 'Não foi possível geocodificar o endereço' }
+    }
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: { latitude: coords.lat, longitude: coords.lng }
+    })
+
+    revalidatePath('/painel/imoveis')
+    revalidatePath('/')
+    revalidatePath('/imoveis/comprar')
+    revalidatePath('/imoveis/alugar')
+    revalidatePath('/lancamentos')
+
+    return { success: true, coords }
+  } catch (error) {
+    console.error('Geocoding single property error:', error)
+    return { success: false, error: 'Erro ao geocodificar propriedade' }
+  }
+}
+
+/**
+ * Geocodifica todas as propriedades sem coordenadas
+ * ATENÇÃO: Esta função faz várias chamadas à API do Google Maps
+ * Use com moderação para não exceder os limites da API
+ */
+export async function geocodeAllProperties() {
+  try {
+    // Busca propriedades sem coordenadas
+    const propertiesWithoutCoords = await prisma.property.findMany({
+      where: {
+        OR: [
+          { latitude: null },
+          { longitude: null }
+        ],
+        location: { not: null }
+      },
+      select: { id: true, code: true, location: true }
+    })
+
+    console.log(`🗺️ Found ${propertiesWithoutCoords.length} properties without coordinates`)
+
+    if (propertiesWithoutCoords.length === 0) {
+      return { 
+        success: true, 
+        message: 'Todas as propriedades já possuem coordenadas',
+        processed: 0,
+        geocoded: 0,
+        failed: 0
+      }
+    }
+
+    let geocoded = 0
+    let failed = 0
+    const results: Array<{ code: string; success: boolean; error?: string }> = []
+
+    for (const property of propertiesWithoutCoords) {
+      if (!property.location) {
+        results.push({ code: property.code, success: false, error: 'Sem endereço' })
+        failed++
+        continue
+      }
+
+      // Delay para evitar rate limiting da API (10 por segundo é o limite gratuito)
+      await new Promise(resolve => setTimeout(resolve, 150))
+
+      try {
+        const coords = await geocodeAddress(property.location)
+        
+        if (coords) {
+          await prisma.property.update({
+            where: { id: property.id },
+            data: { latitude: coords.lat, longitude: coords.lng }
+          })
+          results.push({ code: property.code, success: true })
+          geocoded++
+          console.log(`✅ Geocoded ${property.code}: ${coords.lat}, ${coords.lng}`)
+        } else {
+          results.push({ code: property.code, success: false, error: 'Geocoding falhou' })
+          failed++
+          console.log(`❌ Failed to geocode ${property.code}`)
+        }
+      } catch (error) {
+        results.push({ code: property.code, success: false, error: String(error) })
+        failed++
+        console.error(`❌ Error geocoding ${property.code}:`, error)
+      }
+    }
+
+    // Revalida todas as páginas relevantes
+    revalidatePath('/painel/imoveis')
+    revalidatePath('/')
+    revalidatePath('/imoveis/comprar')
+    revalidatePath('/imoveis/alugar')
+    revalidatePath('/lancamentos')
+
+    return {
+      success: true,
+      message: `Geocodificação concluída: ${geocoded} sucesso, ${failed} falhas`,
+      processed: propertiesWithoutCoords.length,
+      geocoded,
+      failed,
+      details: results
+    }
+  } catch (error) {
+    console.error('Geocode all properties error:', error)
+    return { 
+      success: false, 
+      error: 'Erro ao processar geocodificação em massa',
+      processed: 0,
+      geocoded: 0,
+      failed: 0
+    }
+  }
+}
+
+/**
+ * Retorna estatísticas de geocodificação
+ */
+export async function getGeocodingStats() {
+  try {
+    const totalProperties = await prisma.property.count()
+    const withCoords = await prisma.property.count({
+      where: {
+        latitude: { not: null },
+        longitude: { not: null }
+      }
+    })
+    const withoutCoords = await prisma.property.count({
+      where: {
+        OR: [
+          { latitude: null },
+          { longitude: null }
+        ]
+      }
+    })
+    const withoutLocation = await prisma.property.count({
+      where: { location: null }
+    })
+
+    return {
+      success: true,
+      stats: {
+        total: totalProperties,
+        withCoordinates: withCoords,
+        withoutCoordinates: withoutCoords,
+        withoutLocation,
+        percentageGeocoded: totalProperties > 0 
+          ? Math.round((withCoords / totalProperties) * 100) 
+          : 0
+      }
+    }
+  } catch (error) {
+    console.error('Get geocoding stats error:', error)
+    return { success: false, error: 'Erro ao buscar estatísticas' }
+  }
+}

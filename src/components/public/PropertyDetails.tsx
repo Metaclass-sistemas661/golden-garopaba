@@ -39,7 +39,8 @@ export default function PropertyDetails({ property, similarProperties }: Propert
     alert("Link copiado para a área de transferência!")
   }
 
-  const handleMap = () => {
+  const handleMap = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setIsMapOpen(true)
   }
 
@@ -83,7 +84,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
                </div>
             )}
             <div className={styles.photoOverlayTags}>
-              <button className={styles.overlayBtn} onClick={() => openGallery(0)}>
+              <button className={styles.overlayBtn} onClick={(e) => { e.stopPropagation(); openGallery(0); }}>
                 <Home size={16} /> Fotos ({property.photos.length})
               </button>
               <button className={styles.overlayBtn} onClick={handleMap}>
