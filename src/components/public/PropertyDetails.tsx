@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from 'react'
 import Image from 'next/image'
@@ -24,18 +24,18 @@ export default function PropertyDetails({ property, similarProperties }: Propert
 
   const openGallery = (index: number) => {
     if (!hasPhotos) return
-    setActivePhotoIndex(index)
+    setActivePhotoIndex(Math.min(index, photos.length - 1))
     setIsGalleryOpen(true)
   }
 
   const closeGallery = () => setIsGalleryOpen(false)
 
   const nextPhoto = () => {
-    setActivePhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
+    setActivePhotoIndex((prev) => (prev >= photos.length - 1 ? 0 : prev + 1))
   }
 
   const prevPhoto = () => {
-    setActivePhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
+    setActivePhotoIndex((prev) => (prev <= 0 ? photos.length - 1 : prev - 1))
   }
 
   const handleShare = () => {
@@ -73,7 +73,7 @@ export default function PropertyDetails({ property, similarProperties }: Propert
 
       {/* 1. Galeria de Imagens (Grid Assimetrico) */}
       <section className={styles.gallerySection}>
-        <div className={styles.galleryGrid}>
+        <div className={styles.galleryGrid} style={{ gridTemplateColumns: photos.length === 1 ? '1fr' : undefined }}>
           {/* Foto Principal Esquerda */}
           <div className={styles.mainPhotoWrapper} onClick={() => openGallery(0)} style={{cursor: hasPhotos ? 'pointer' : 'default', position: 'relative'}}>
             <Image
@@ -98,27 +98,34 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           </div>
 
           {/* Fotos Menores Direita */}
-          <div className={styles.sidePhotos}>
-            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(1)} style={{cursor: 'pointer', position: 'relative'}}>
-              <Image
-                src={photos[1] || photos[0] || '/placeholder.jpg'}
-                alt={`${property.title} - Foto 2`}
-                className={styles.sidePhoto}
-                fill unoptimized style={{ objectFit: 'cover' }}
-              />
-            </div>
-            <div className={styles.sidePhotoWrapper} onClick={() => openGallery(2)} style={{cursor: 'pointer', position: 'relative'}}>
-              <Image
-                src={photos[2] || photos[0] || '/placeholder.jpg'}
-                alt={`${property.title} - Foto 3`}
-                className={styles.sidePhoto}
-                fill unoptimized style={{ objectFit: 'cover' }}
-              />
-              <div className={styles.viewMoreOverlay}>
-                <span>+ Ver mais</span>
+          {photos.length > 1 && (
+            <div className={styles.sidePhotos}>
+              <div className={styles.sidePhotoWrapper} onClick={() => openGallery(1)} style={{cursor: 'pointer', position: 'relative'}}>
+                <Image
+                  src={photos[1]}
+                  alt={`${property.title} - Foto 2`}
+                  className={styles.sidePhoto}
+                  fill unoptimized style={{ objectFit: 'cover' }}
+                />
               </div>
+              
+              {photos.length > 2 && (
+                <div className={styles.sidePhotoWrapper} onClick={() => openGallery(2)} style={{cursor: 'pointer', position: 'relative'}}>
+                  <Image
+                    src={photos[2]}
+                    alt={`${property.title} - Foto 3`}
+                    className={styles.sidePhoto}
+                    fill unoptimized style={{ objectFit: 'cover' }}
+                  />
+                  {photos.length > 3 && (
+                    <div className={styles.viewMoreOverlay}>
+                      <span>+ {photos.length - 3} fotos</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -304,7 +311,9 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           <button className={styles.closeBtn} onClick={closeGallery}><X size={32} /></button>
           
           <div className={styles.modalContent} style={{ position: 'relative', width: '90vw', height: '90vh' }}>
-            <button className={styles.navBtn} onClick={prevPhoto} style={{ zIndex: 10 }}><ChevronLeft size={36} /></button>
+            {photos.length > 1 && (
+              <button className={styles.navBtn} onClick={prevPhoto} style={{ zIndex: 10 }}><ChevronLeft size={36} /></button>
+            )}
             
             <Image 
               src={photos[activePhotoIndex] || "/placeholder.jpg"} 
@@ -313,7 +322,9 @@ export default function PropertyDetails({ property, similarProperties }: Propert
               fill unoptimized style={{ objectFit: 'contain' }}
             />
             
-            <button className={styles.navBtn} onClick={nextPhoto} style={{ zIndex: 10 }}><ChevronRight size={36} /></button>
+            {photos.length > 1 && (
+              <button className={styles.navBtn} onClick={nextPhoto} style={{ zIndex: 10 }}><ChevronRight size={36} /></button>
+            )}
           </div>
           
           <div className={styles.photoCounter}>
