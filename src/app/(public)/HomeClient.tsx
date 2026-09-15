@@ -32,7 +32,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
   const video1Ref = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
 
-  const handleVideoEnded = (nextVid: 1 | 2, nextRef: React.RefObject<HTMLVideoElement>) => {
+  const handleVideoEnded = (nextVid: 1 | 2, nextRef: React.RefObject<HTMLVideoElement | null>) => {
     setActiveVideo(nextVid);
     if (nextRef.current) {
       nextRef.current.currentTime = 0;
