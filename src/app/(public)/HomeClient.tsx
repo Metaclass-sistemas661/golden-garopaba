@@ -27,6 +27,19 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
   const propertyGridRef = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0); // Primeiro item aberto por padrão
 
+  // Lógica de Dual-Video Crossfade (Enterprise Grade)
+  const [activeVideo, setActiveVideo] = useState<1 | 2>(1);
+  const video1Ref = useRef<HTMLVideoElement>(null);
+  const video2Ref = useRef<HTMLVideoElement>(null);
+
+  const handleVideoEnded = (nextVid: 1 | 2, nextRef: React.RefObject<HTMLVideoElement>) => {
+    setActiveVideo(nextVid);
+    if (nextRef.current) {
+      nextRef.current.currentTime = 0;
+      nextRef.current.play().catch(() => {});
+    }
+  };
+
   const scrollPropertyGrid = (direction: 'left' | 'right') => {
     if (propertyGridRef.current) {
       const { current } = propertyGridRef;
@@ -259,14 +272,25 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
         <div className={styles.videoBackground}>
           <div className={styles.videoOverlay}></div>
           <video 
-            src="/video-hero-sectionj.mp4" 
+            ref={video1Ref}
+            src="/VIDEO1-HERO.mp4" 
             autoPlay 
-            loop 
             muted 
             playsInline 
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
-            className={styles.heroVideo}
+            className={`${styles.heroVideo} ${activeVideo === 1 ? styles.videoActive : styles.videoHidden}`}
+            onEnded={() => handleVideoEnded(2, video2Ref)}
+          />
+          <video 
+            ref={video2Ref}
+            src="/VIDEO2-HERO.mp4" 
+            muted 
+            playsInline 
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            className={`${styles.heroVideo} ${activeVideo === 2 ? styles.videoActive : styles.videoHidden}`}
+            onEnded={() => handleVideoEnded(1, video1Ref)}
           />
         </div>
 
