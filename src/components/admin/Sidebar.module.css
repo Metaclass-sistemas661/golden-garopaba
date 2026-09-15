@@ -65,12 +65,16 @@
 }
 
 .sidebar.collapsed .logoSection {
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 1.5rem 0;
+  gap: 1rem;
 }
 
 .sidebar.collapsed .collapseBtn {
-  display: none; /* Pode esconder ou mostrar embaixo do logo, optamos por esconder no mobile/collapsed para visual mais limpo */
+  display: flex;
+  margin: 0;
 }
 
 /* Mostrar collapseBtn no hover da sidebar mesmo collapsed, ou num footer */
