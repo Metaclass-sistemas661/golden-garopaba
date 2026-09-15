@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './PropertiesCatalog.module.css'
-import { MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, Map } from 'lucide-react'
+import { MapPin, Bed, Bath, Maximize, Ruler, Car, BadgeCheck, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, Map } from 'lucide-react'
 import FilterModal, { FilterState } from './FilterModal'
 import { PropertyDTO } from '@/types/dto'
 import PropertiesMapView from '@/components/maps/PropertiesMapView'
@@ -287,24 +287,52 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                     )}
                   </div>
                   <div className={styles.cardContent}>
-                    <h3>{property.title}</h3>
+                    <div className={styles.cardHeader}>
+                      <h3>{property.title}</h3>
+                      {property.financeable && (
+                        <div className={styles.financeableBadge} title="Imóvel Financiável">
+                          <BadgeCheck size={20} />
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.cardCode}>
+                      Cód. {property.code}
+                    </div>
                     <div className={styles.cardLocation}>
                       <MapPin size={16} />
                       <span>{property.location}</span>
                     </div>
                     <div className={styles.cardFeatures}>
-                      <div className={styles.featureItem}>
-                        <Bed size={16} />
-                        <span>{property.bedrooms || 0}</span>
-                      </div>
-                      <div className={styles.featureItem}>
-                        <Bath size={16} />
-                        <span>{property.bathrooms || 0}</span>
-                      </div>
-                      <div className={styles.featureItem}>
-                        <Square size={16} />
-                        <span>{Number(property.areaTotal || 0)}m²</span>
-                      </div>
+                      {(property.bedrooms || 0) > 0 && (
+                        <div className={styles.featureItem} title="Quartos">
+                          <Bed size={16} />
+                          <span>{property.bedrooms}</span>
+                        </div>
+                      )}
+                      {(property.bathrooms || 0) > 0 && (
+                        <div className={styles.featureItem} title="Banheiros">
+                          <Bath size={16} />
+                          <span>{property.bathrooms}</span>
+                        </div>
+                      )}
+                      {(property.parkingSpaces || 0) > 0 && (
+                        <div className={styles.featureItem} title="Vagas de Garagem">
+                          <Car size={16} />
+                          <span>{property.parkingSpaces}</span>
+                        </div>
+                      )}
+                      {Number(property.areaTotal || 0) > 0 && (
+                        <div className={styles.featureItem} title="Área Total">
+                          <Maximize size={16} />
+                          <span>{Number(property.areaTotal)}m²</span>
+                        </div>
+                      )}
+                      {Number(property.areaUseful || 0) > 0 && (
+                        <div className={styles.featureItem} title="Área Útil">
+                          <Ruler size={16} />
+                          <span>{Number(property.areaUseful)}m²</span>
+                        </div>
+                      )}
                     </div>
                     <div className={styles.cardPrice}>
                       {property.transactionType === 'RENT' 
