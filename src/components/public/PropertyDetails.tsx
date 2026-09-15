@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Bed, Bath, Square, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
+import { MapPin, Bed, Bath, Maximize, Ruler, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
 import styles from './PropertyDetails.module.css'
 import { PropertyDTO } from '@/types/dto'
 import PropertyMapModal from '@/components/maps/PropertyMapModal'
@@ -184,12 +184,12 @@ export default function PropertyDetails({ property, similarProperties }: Propert
           <div className={styles.specsGrid}>
             <div className={styles.specItem}>
               <span className={styles.specLabel}>Área total</span>
-              <span className={styles.specValue}><Square size={18} /> {Number(property.areaTotal || 0)} m²</span>
+              <span className={styles.specValue}><Maximize size={18} /> {Number(property.areaTotal || 0)} m²</span>
             </div>
             {property.areaUseful && (
               <div className={styles.specItem}>
                 <span className={styles.specLabel}>Área útil</span>
-                <span className={styles.specValue}><Square size={18} /> {Number(property.areaUseful)} m²</span>
+                <span className={styles.specValue}><Ruler size={18} /> {Number(property.areaUseful)} m²</span>
               </div>
             )}
             <div className={styles.specItem}>
