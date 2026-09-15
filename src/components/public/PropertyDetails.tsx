@@ -1,7 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Bed, Bath, Square, Car, Check, Share2, Heart, MessageCircle, Home, X, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react'
@@ -19,10 +18,6 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  // Necessario para createPortal no SSR do Next.js
-  useEffect(() => { setMounted(true) }, [])
 
   const photos = property.photos || []
   const hasPhotos = photos.length > 0
@@ -327,19 +322,16 @@ export default function PropertyDetails({ property, similarProperties }: Propert
         </div>
       )}
 
-      {/* Modal do Mapa - renderizado via Portal no body para evitar conflitos de z-index e overflow */}
-      {mounted && createPortal(
-        <PropertyMapModal
-          isOpen={isMapOpen}
-          onClose={() => setIsMapOpen(false)}
-          latitude={property.latitude}
-          longitude={property.longitude}
-          address={property.location}
-          propertyTitle={property.title}
-          propertyCode={property.code}
-        />,
-        document.body
-      )}
+      {/* Modal do Mapa - o componente gerencia o portal internamente */}
+      <PropertyMapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        latitude={property.latitude}
+        longitude={property.longitude}
+        address={property.location}
+        propertyTitle={property.title}
+        propertyCode={property.code}
+      />
 
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps'
 import { X, MapPin, Navigation, ExternalLink } from 'lucide-react'
 import styles from './maps.module.css'
@@ -17,6 +18,16 @@ interface PropertyMapModalProps {
 }
 
 const GAROPABA_CENTER = { lat: -28.0275, lng: -48.6178 }
+
+/**
+ * Verifica se estamos no ambiente do navegador (client-side).
+ * Necessário para createPortal funcionar corretamente com SSR do Next.js.
+ */
+function canUseDOM(): boolean {
+  return typeof window !== 'undefined' && 
+         typeof document !== 'undefined' && 
+         document.body !== null
+}
 
 function PropertyMapContent({ 
   latitude, 
@@ -149,20 +160,26 @@ function PropertyMapContent({
 export default function PropertyMapModal(props: PropertyMapModalProps) {
   const { isOpen, onClose } = props
 
+  // Controla o overflow do body quando o modal está aberto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
-    return () => { document.body.style.overflow = '' }
+    return () => { 
+      document.body.style.overflow = '' 
+    }
   }, [isOpen])
 
-  if (!isOpen) return null
+  // Não renderiza nada se o modal está fechado ou estamos no servidor
+  if (!isOpen || !canUseDOM()) return null
 
-  return (
+  // Renderiza o modal via portal diretamente no document.body
+  return createPortal(
     <GoogleMapsProvider>
       <PropertyMapContent {...props} onClose={onClose} />
-    </GoogleMapsProvider>
+    </GoogleMapsProvider>,
+    document.body
   )
 }
