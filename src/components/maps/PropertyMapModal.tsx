@@ -61,8 +61,8 @@ function PropertyMapContent({
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContainer} onClick={e => e.stopPropagation()}>
+    <div className={styles.modalOverlay} onClick={onClose} data-lenis-prevent="true">
+      <div className={styles.modalContainer} onClick={e => e.stopPropagation()} data-lenis-prevent="true">
         <div className={styles.modalHeader}>
           <div className={styles.modalTitle}>
             <MapPin size={20} />
@@ -95,7 +95,7 @@ function PropertyMapContent({
           <Map
             defaultZoom={hasCoordinates ? 17 : 14}
             defaultCenter={position}
-            mapId="golden-properties-map"
+            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID"}
             mapTypeId={mapType}
             gestureHandling="greedy"
             disableDefaultUI={false}
@@ -164,11 +164,14 @@ export default function PropertyMapModal(props: PropertyMapModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
+      document.documentElement.classList.add('lenis-stopped')
     } else {
       document.body.style.overflow = ''
+      document.documentElement.classList.remove('lenis-stopped')
     }
     return () => { 
       document.body.style.overflow = '' 
+      document.documentElement.classList.remove('lenis-stopped')
     }
   }, [isOpen])
 

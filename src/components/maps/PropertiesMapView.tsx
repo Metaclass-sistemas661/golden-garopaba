@@ -72,7 +72,7 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
   }
 
   return (
-    <div className={styles.propertiesMapContainer}>
+    <div className={styles.propertiesMapContainer} data-lenis-prevent="true">
       <div className={styles.propertiesMapHeader}>
         <button className={styles.backBtn} onClick={onClose}><ArrowLeft size={20} /><span>Voltar</span></button>
         <div className={styles.propertiesMapTitle}>
@@ -99,7 +99,7 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
               <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>Acesse o Painel → Geocodificação para processar todos de uma vez.</p>
             </div>
           )}
-          <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId="golden-properties-map" mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
+          <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID"} mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
             {propertiesWithCoords.map((property) => {
               const isActive = selectedProperty?.id === property.id
               const price = formatPrice(Number(property.price) || Number(property.rentPrice) || 0)
@@ -194,9 +194,17 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
 
 export default function PropertiesMapView(props: PropertiesMapViewProps) {
   useEffect(() => {
-    if (props.isOpen) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
+    if (props.isOpen) {
+      document.body.style.overflow = 'hidden'
+      document.documentElement.classList.add('lenis-stopped')
+    } else {
+      document.body.style.overflow = ''
+      document.documentElement.classList.remove('lenis-stopped')
+    }
+    return () => { 
+      document.body.style.overflow = '' 
+      document.documentElement.classList.remove('lenis-stopped')
+    }
   }, [props.isOpen])
 
   if (!props.isOpen) return null

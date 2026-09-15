@@ -71,6 +71,6 @@ html.lenis, html.lenis body {
   overflow: hidden;
 }
 
-.lenis.lenis-smooth iframe {
+html.lenis.lenis-smooth:not(.lenis-stopped) iframe {
   pointer-events: none;
 }
