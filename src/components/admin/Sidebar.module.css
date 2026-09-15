@@ -49,32 +49,9 @@
   color: #0f172a;
 }
 
-.collapseBtn {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
-}
-
-.collapseBtn:hover {
-  color: #0f172a;
-}
-
 .sidebar.collapsed .logoSection {
-  flex-direction: column;
   justify-content: center;
-  align-items: center;
   padding: 1.5rem 0;
-  gap: 1rem;
-}
-
-.sidebar.collapsed .collapseBtn {
-  display: flex;
-  margin: 0;
 }
 
 /* Mostrar collapseBtn no hover da sidebar mesmo collapsed, ou num footer */

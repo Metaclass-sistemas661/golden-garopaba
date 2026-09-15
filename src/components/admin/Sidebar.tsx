@@ -34,12 +34,6 @@ export default function Sidebar() {
           <span className={styles.logoMark}>G</span>
           {!isCollapsed && <span className={styles.logoText}>Garopaba</span>}
         </div>
-        <button 
-          className={styles.collapseBtn} 
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-        </button>
       </div>
 
       <nav className={styles.nav}>
@@ -63,6 +57,16 @@ export default function Sidebar() {
       </nav>
 
       <div className={styles.footer}>
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          className={styles.navLink} 
+          title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
+          style={{ border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', marginBottom: '0.5rem' }}
+        >
+          {isCollapsed ? <PanelLeftOpen size={20} className={styles.navIcon} /> : <PanelLeftClose size={20} className={styles.navIcon} />}
+          {!isCollapsed && <span>{isCollapsed ? "Expandir Menu" : "Recolher Menu"}</span>}
+        </button>
+
         <button 
           onClick={handleLogout} 
           className={styles.navLink} 
