@@ -50,20 +50,20 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
 
   const faqData = [
     {
-      question: "Como funciona o processo de compra de imóveis de luxo em Garopaba?",
-      answer: "Nosso processo é desenhado para ser 100% sem atritos. Cuidamos de toda a documentação, due diligence jurídica e negociação sigilosa. Do primeiro contato até a entrega das chaves, o corretor Rafael Jesse acompanha cada passo pessoalmente."
+      question: "Como funciona o processo de compra de imóveis em Garopaba?",
+      answer: "Nosso processo é desenhado para ser 100% sem atritos. Cuidamos de toda a documentação e fazemos uma due diligence rigorosa. Do primeiro contato até a entrega das chaves, nossa equipe acompanha cada passo de perto."
     },
     {
-      question: "Quais são as vantagens de investir no litoral de Santa Catarina?",
-      answer: "Santa Catarina apresenta a maior valorização imobiliária do Brasil nos últimos anos. Garopaba, especificamente, une natureza preservada, segurança de primeiro mundo e um plano diretor rigoroso que garante a exclusividade e a valorização contínua do seu investimento."
+      question: "Quais são as vantagens de comprar ou investir no litoral de Santa Catarina?",
+      answer: "Santa Catarina tem excelente qualidade de vida e apresenta forte valorização imobiliária. Garopaba se destaca por unir natureza preservada, infraestrutura, segurança e ótimas oportunidades para moradia ou investimento."
     },
     {
-      question: "As propriedades listadas são exclusivas da Golden Garopaba?",
-      answer: "Sim. A grande maioria do nosso portfólio de alto padrão é trabalhada em regime de exclusividade off-market. Isso garante total privacidade aos vendedores e acesso privilegiado aos nossos clientes investidores."
+      question: "Todos os imóveis do site estão disponíveis?",
+      answer: "Trabalhamos duro para manter nossa base de imóveis sempre atualizada. Muitos de nossos imóveis são captados com exclusividade, garantindo segurança tanto para quem vende quanto para quem compra."
     },
     {
-      question: "Vocês oferecem assessoria jurídica e tributária?",
-      answer: "Contamos com um corpo jurídico e administrativo blindado, especializado em transações imobiliárias de alto volume, garantindo total segurança, conformidade e eficiência tributária na sua aquisição."
+      question: "A imobiliária oferece suporte com a papelada?",
+      answer: "Sim! Contamos com suporte jurídico e administrativo completo. Nosso objetivo é garantir total segurança e conformidade na sua compra ou locação, sem dores de cabeça."
     }
   ];
 
@@ -370,10 +370,10 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
       <section className={`${styles.globalNetworkSection} globalNetworkRef`}>
         <div className={styles.globalNetworkContainer}>
           <div className={styles.globalNetworkContent}>
-            <span className={styles.globalSubtitle}>EXCLUSIVIDADE & CONHECIMENTO LOCAL</span>
-            <h2 className={styles.globalTitle}>O luxo de encontrar o refúgio perfeito com quem respira Garopaba...</h2>
+            <span className={styles.globalSubtitle}>DEDICAÇÃO & CONHECIMENTO LOCAL</span>
+            <h2 className={styles.globalTitle}>A facilidade de encontrar o imóvel ideal com quem respira Garopaba...</h2>
             <p className={styles.globalDescription}>
-              Nascemos com um propósito claro: conectar você às propriedades mais espetaculares e reservadas de Santa Catarina. Nossa curadoria exclusiva e profundo conhecimento local garantem que sua experiência no mercado de alto padrão em Garopaba seja impecável, do início ao fim.
+              Nascemos com um propósito claro: conectar você ao seu imóvel ideal em Santa Catarina. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba seja transparente, segura e eficiente do início ao fim.
             </p>
             
             <a href="#" className={styles.globalLink}>
@@ -383,19 +383,19 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <div className={styles.globalStats}>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>100%</span>
-                <span className={styles.statLabel}>curadoria de alto padrão</span>
+                <span className={styles.statLabel}>dedicação ao seu perfil</span>
               </div>
               <div className={styles.statItem}>
-                <span className={styles.statNumber}>+50</span>
-                <span className={styles.statLabel}>imóveis selecionados</span>
+                <span className={styles.statNumber}>+100</span>
+                <span className={styles.statLabel}>imóveis verificados</span>
               </div>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>01</span>
-                <span className={styles.statLabel}>região exclusiva atendida</span>
+                <span className={styles.statLabel}>região focada com excelência</span>
               </div>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>24h</span>
-                <span className={styles.statLabel}>atendimento premium</span>
+                <span className={styles.statLabel}>suporte dedicado</span>
               </div>
             </div>
           </div>
@@ -499,29 +499,29 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
           {/* Lado Direito: Textos */}
           <div className={`${styles.experienceContent} experienceContentRef`}>
             <span className={`${styles.experienceTagline} expTextStagger`}>
-              CURADORIA ARQUITETÔNICA
+              FOCO NO CLIENTE
             </span>
             
             <h2 className={`${styles.experienceTitle} expTextStagger`}>
-              Projetos que Redefinem o<br /><span>Alto Padrão em Garopaba</span>
+              Opções que se Encaixam na<br /><span>Sua Vida em Garopaba</span>
             </h2>
             
             <p className={`${styles.experienceDescription} expTextStagger`}>
-              Nossa seleção de imóveis vai além do convencional. Cada propriedade é escolhida meticulosamente por seu design arrojado, integração perfeita com a natureza deslumbrante de Santa Catarina e acabamentos estritamente premium.
+              Nossa seleção abrange as melhores oportunidades da região. Cada propriedade é avaliada detalhadamente para garantir segurança estrutural, boa localização e o melhor custo-benefício para você e sua família.
             </p>
             
             <ul className={styles.experienceList}>
               <li className="expTextStagger">
                 <span className={styles.checkIcon}>✔</span>
-                Design contemporâneo assinado por escritórios renomados.
+                Imóveis selecionados e prontos para morar ou investir.
               </li>
               <li className="expTextStagger">
                 <span className={styles.checkIcon}>✔</span>
-                Luz natural abundante e ventilação cruzada de frente para o mar.
+                Opções com excelente localização e infraestrutura completa.
               </li>
               <li className="expTextStagger">
                 <span className={styles.checkIcon}>✔</span>
-                Materiais nobres: pedras naturais, madeiras de lei e esquadrias termoacústicas.
+                Documentação 100% regularizada para uma transação sem surpresas.
               </li>
             </ul>
 
@@ -538,32 +538,32 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
       <section className={`${styles.featuresSection} featuresSectionRef`}>
         <div className={styles.featuresContainer}>
           <div className={`${styles.featuresText} featuresTextRef`}>
-            <h2>Exclusividade &<br />Alta Performance</h2>
+            <h2>Confiança &<br />Transparência</h2>
             <p>
-              A Golden Garopaba eleva o padrão de negociações imobiliárias em Santa Catarina. Sob a curadoria de Rafael Jesse, garantimos discrição absoluta, inteligência de mercado e acesso restrito às propriedades mais extraordinárias do litoral.
+              A Golden Garopaba simplifica o processo de encontrar o imóvel perfeito em Santa Catarina. Com o suporte de especialistas locais, garantimos transparência, agilidade e total dedicação para as suas necessidades.
             </p>
           </div>
           
           <div className={`${styles.featuresGrid} featuresGridRef`}>
             <div className={`${styles.featureCard} featureCardRef`}>
               <Headphones size={48} className={styles.featureIcon} />
-              <h3>Suporte 24/7</h3>
-              <p>Nossa equipe está sempre disponível para auxiliar com todas as suas necessidades.</p>
+              <h3>Suporte Dedicado</h3>
+              <p>Nossa equipe está sempre pronta para tirar dúvidas e ajudar na sua jornada.</p>
             </div>
             <div className={`${styles.featureCard} featureCardRef`}>
               <Star size={48} className={styles.featureIcon} />
-              <h3>Seleção Premium</h3>
-              <p>Acesso às propriedades de luxo mais exclusivas de Garopaba e região.</p>
+              <h3>Seleção Inteligente</h3>
+              <p>As melhores oportunidades, casas e lançamentos de Garopaba e região.</p>
             </div>
             <div className={`${styles.featureCard} featureCardRef`}>
               <BadgeCheck size={48} className={styles.featureIcon} />
               <h3>Imóveis Verificados</h3>
-              <p>Cada propriedade é minuciosamente inspecionada e verificada para garantir autenticidade.</p>
+              <p>Avaliamos cuidadosamente cada imóvel para garantir a melhor escolha.</p>
             </div>
             <div className={`${styles.featureCard} featureCardRef`}>
               <Shield size={48} className={styles.featureIcon} />
               <h3>Transações Seguras</h3>
-              <p>Seu investimento é protegido por nosso sistema jurídico e administrativo blindado.</p>
+              <p>Todo o processo é acompanhado de perto para garantir uma compra segura.</p>
             </div>
           </div>
         </div>

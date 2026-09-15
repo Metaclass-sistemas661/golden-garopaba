@@ -21,8 +21,8 @@ export default function Footer() {
         </video>
         
         <div className={styles.ctaGlassBox}>
-          <h2>Sua Próxima Conquista Está Aqui.</h2>
-          <p>Agende uma consultoria privada e tenha acesso ao portfólio exclusivo da Golden Garopaba.</p>
+          <h2>O Seu Novo Lar Está Aqui.</h2>
+          <p>Fale com nossa equipe e receba um atendimento personalizado para encontrar o seu imóvel ideal.</p>
           <Link href="/contato" className={styles.ctaButton}>
             Falar com Corretor Agora
           </Link>
@@ -37,7 +37,7 @@ export default function Footer() {
             <Link href="/" className={styles.footerLogo}>
               <Image src="/logo1.png" alt="Golden Garopaba" width={150} height={150} style={{ objectFit: 'contain' }} />
             </Link>
-            <p>Redefinindo o alto padrão no litoral catarinense. Inteligência de mercado, curadoria exclusiva e discrição absoluta para investidores exigentes.</p>
+            <p>Conectando pessoas aos melhores imóveis em Garopaba. Inteligência de mercado e atendimento dedicado para a sua segurança.</p>
           </div>
 
           <div className={styles.footerLinksWrapper}>

@@ -38,17 +38,17 @@ export const viewport: Viewport = {
 // =============================================================================
 export const metadata: Metadata = {
   title: {
-    default: `${SITE_NAME} | Imóveis de Luxo em Garopaba`,
+    default: `${SITE_NAME} | A sua imobiliária em Garopaba`,
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "A principal imobiliária de luxo em Garopaba, SC. Mansões exclusivas, coberturas espetaculares e investimentos premium no litoral catarinense.",
+    "A sua imobiliária de confiança em Garopaba, SC. Encontre as melhores casas, apartamentos e terrenos na região.",
   keywords: [
-    "imóveis de luxo Garopaba",
-    "mansões Garopaba",
-    "imobiliária alto padrão Santa Catarina",
+    "imóveis Garopaba",
+    "comprar casa Garopaba",
+    "imobiliária de confiança SC",
     "Golden Garopaba",
-    "imóveis exclusivos SC",
+    "apartamentos SC",
   ],
   authors: [{ name: "Golden Garopaba", url: SITE_URL }],
   creator: "Golden Garopaba",
@@ -60,14 +60,14 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} | Imóveis de Luxo em Garopaba`,
-    description: "A principal imobiliária de luxo em Garopaba. Mansões exclusivas e investimentos premium.",
+    title: `${SITE_NAME} | A sua imobiliária em Garopaba`,
+    description: "Encontre as melhores casas, apartamentos e terrenos em Garopaba e região.",
     images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: "Golden Garopaba" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} | Imóveis de Luxo em Garopaba`,
-    description: "Mansões exclusivas e coberturas espetaculares no litoral catarinense.",
+    title: `${SITE_NAME} | A sua imobiliária em Garopaba`,
+    description: "Encontre as melhores opções de imóveis no litoral catarinense.",
     images: [`${SITE_URL}/og-image.jpg`],
   },
   robots: {
