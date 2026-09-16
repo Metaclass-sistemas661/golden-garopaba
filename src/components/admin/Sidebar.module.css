@@ -18,7 +18,7 @@
   padding: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   border-bottom: 1px solid #1f2937;
   background-color: #0a0a0a;
 }
