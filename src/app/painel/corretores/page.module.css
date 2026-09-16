@@ -156,6 +156,7 @@
   margin: 1.5rem 0;
   padding-bottom: 1.5rem;
   border-bottom: 1px dashed #e2e8f0;
+  box-sizing: border-box;
 }
 
 .statBox {
@@ -168,6 +169,7 @@
   border: 1px solid #f1f5f9;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .statLabel {
@@ -216,6 +218,7 @@
   color: #b4854d;
   background: linear-gradient(90deg, #996e38 0%, #d4af37 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
