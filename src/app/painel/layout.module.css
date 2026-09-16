@@ -26,12 +26,22 @@
 }
 
 .contentArea::-webkit-scrollbar {
-  display: none; /* Esconde barra no chrome/safari para visual mais limpo */
+  width: 6px;
+  height: 6px;
+  display: block;
+}
+
+.contentArea::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .contentArea::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 10px;
+}
+
+.contentArea::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 /* Header removido do flex padrão e integrado no Dashboard ou Sidebar para ficar mais limpo estilo SaaS */
