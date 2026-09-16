@@ -27,18 +27,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
   const propertyGridRef = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0); // Primeiro item aberto por padrão
 
-  // Lógica de Dual-Video Crossfade (Enterprise Grade)
-  const [activeVideo, setActiveVideo] = useState<1 | 2>(1);
-  const video1Ref = useRef<HTMLVideoElement>(null);
-  const video2Ref = useRef<HTMLVideoElement>(null);
 
-  const handleVideoEnded = (nextVid: 1 | 2, nextRef: React.RefObject<HTMLVideoElement | null>) => {
-    setActiveVideo(nextVid);
-    if (nextRef.current) {
-      nextRef.current.currentTime = 0;
-      nextRef.current.play().catch(() => {});
-    }
-  };
 
   const scrollPropertyGrid = (direction: 'left' | 'right') => {
     if (propertyGridRef.current) {
@@ -268,30 +257,27 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
     <main className={styles.main} ref={containerRef}>
       {/* Hero Section */}
       <section className={styles.hero}>
-        {/* Background Video */}
+        {/* Background Image */}
         <div className={styles.videoBackground}>
-          <div className={styles.videoOverlay}></div>
-          <video 
-            ref={video1Ref}
-            src="/VIDEO1-HERO.mp4" 
-            autoPlay 
-            muted 
-            playsInline 
-            disablePictureInPicture
-            controlsList="nodownload nofullscreen noremoteplayback"
-            className={`${styles.heroVideo} ${activeVideo === 1 ? styles.videoActive : styles.videoHidden}`}
-            onEnded={() => handleVideoEnded(2, video2Ref)}
+          <div className={styles.videoOverlay} style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%)' }}></div>
+          <Image 
+            src="/herosection-casa.jpeg" 
+            alt="Golden Garopaba Imóveis" 
+            fill 
+            className={styles.heroVideo} // reaproveitando a classe para manter o object-fit e fullscreen
+            style={{ objectFit: 'cover' }}
+            priority
           />
-          <video 
-            ref={video2Ref}
-            src="/VIDEO2-HERO.mp4" 
-            muted 
-            playsInline 
-            disablePictureInPicture
-            controlsList="nodownload nofullscreen noremoteplayback"
-            className={`${styles.heroVideo} ${activeVideo === 2 ? styles.videoActive : styles.videoHidden}`}
-            onEnded={() => handleVideoEnded(1, video1Ref)}
-          />
+        </div>
+
+        {/* Hero Content (Títulos) */}
+        <div className={styles.heroContainer} style={{ position: 'relative', zIndex: 3, width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '15vh' }}>
+          <div className={styles.heroContent} style={{ textAlign: 'center', color: '#fff', maxWidth: '800px', padding: '0 2rem' }}>
+            <h1 className={styles.title} style={{ fontSize: 'clamp(3rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Golden Garopaba Imóveis</h1>
+            <p className={styles.subtitle} style={{ fontSize: '1.25rem', lineHeight: 1.6, opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+              Transformamos o seu desejo em endereço. Encontre a casa perfeita em Garopaba com segurança, transparência e as melhores oportunidades da região.
+            </p>
+          </div>
         </div>
 
         {/* Floating Search Bar */}
