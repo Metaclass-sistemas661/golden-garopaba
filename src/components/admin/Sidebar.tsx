@@ -35,7 +35,7 @@ export default function Sidebar() {
           {isCollapsed ? (
             <span className={styles.logoMark}>G</span>
           ) : (
-            <Image src="/logo1.png" alt="Golden Garopaba" width={160} height={50} style={{ objectFit: 'contain' }} priority />
+            <Image src="/logo1.png" alt="Golden Garopaba" width={220} height={70} style={{ objectFit: 'contain' }} priority />
           )}
         </div>
       </div>
