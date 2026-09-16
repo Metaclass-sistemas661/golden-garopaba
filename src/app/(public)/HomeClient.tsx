@@ -511,11 +511,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
               </li>
             </ul>
 
-            <div className="expTextStagger">
-              <Link href="/projetos" className={styles.exploreButton}>
-                Explorar Todos os Projetos
-              </Link>
-            </div>
+
           </div>
         </div>
       </section>
