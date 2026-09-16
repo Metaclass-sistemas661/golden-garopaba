@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Home, Building, Users, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -31,8 +32,11 @@ export default function Sidebar() {
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
       <div className={styles.logoSection}>
         <div className={styles.logo}>
-          <span className={styles.logoMark}>G</span>
-          {!isCollapsed && <span className={styles.logoText}>Garopaba</span>}
+          {isCollapsed ? (
+            <span className={styles.logoMark}>G</span>
+          ) : (
+            <Image src="/logo1.png" alt="Golden Garopaba" width={160} height={50} style={{ objectFit: 'contain' }} priority />
+          )}
         </div>
       </div>
 
