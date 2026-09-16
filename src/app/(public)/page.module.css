@@ -7,7 +7,7 @@
 /* ================= HERO SECTION ================= */
 .hero {
   position: relative;
-  min-height: 85vh; /* A bit taller since margin is smaller */
+  min-height: 95vh; /* Aumentado para evitar sobreposição da barra de pesquisa */
   margin: 1.5rem 2rem 2rem 2rem; /* Much smaller top margin */
 }
 
