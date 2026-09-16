@@ -275,7 +275,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
           <div className={styles.heroContent} style={{ textAlign: 'center', color: '#fff', maxWidth: '800px', padding: '0 2rem' }}>
             <h1 className={styles.title} style={{ fontSize: 'clamp(3rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Golden Garopaba Imóveis</h1>
             <p className={styles.subtitle} style={{ fontSize: '1.25rem', lineHeight: 1.6, opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-              Transformamos o seu desejo em endereço. Encontre a casa perfeita em Garopaba com segurança, transparência e as melhores oportunidades da região.
+              Transformamos o seu desejo em endereço. Encontre o imóvel perfeito em Garopaba com segurança, transparência e as melhores oportunidades da região.
             </p>
           </div>
         </div>
