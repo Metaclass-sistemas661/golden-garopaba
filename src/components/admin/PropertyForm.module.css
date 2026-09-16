@@ -156,6 +156,7 @@
 .formGroup input,
 .formGroup select,
 .formGroup textarea {
+  width: 100%;
   padding: 0.85rem 1rem;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -177,13 +178,13 @@
 
 .grid2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
 .grid3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
