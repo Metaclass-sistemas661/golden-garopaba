@@ -40,7 +40,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className={styles.nav}>
+      <nav className={styles.nav} data-lenis-prevent="true" onWheel={(e) => e.stopPropagation()}>
         <ul className={styles.navList}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href

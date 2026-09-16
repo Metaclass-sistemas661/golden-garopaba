@@ -150,7 +150,8 @@
 }
 
 .statsGrid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin: 1.5rem 0;
   padding-bottom: 1.5rem;
@@ -159,8 +160,6 @@
 }
 
 .statBox {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -168,8 +167,6 @@
   padding: 1rem;
   border-radius: 12px;
   border: 1px solid #f1f5f9;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
   box-sizing: border-box;
 }
 

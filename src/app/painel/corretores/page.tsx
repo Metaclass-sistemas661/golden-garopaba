@@ -74,8 +74,8 @@ export default async function CorretoresPage({
                   <span className={styles.statValue}>{broker.specialty}</span>
                 </div>
                 <div className={styles.statBox}>
-                  <span className={styles.statLabel}>Comissões (Venda / Aluguel)</span>
-                  <span className={styles.statValue} style={{fontSize: '1rem'}}>{Number(broker.commissionPercentageSale)}% / {Number(broker.commissionPercentageRent)}%</span>
+                  <span className={styles.statLabel}>Comissões</span>
+                  <span className={styles.statValue} style={{fontSize: '1rem'}}>{Number(broker.commissionPercentageSale)}% (V) / {Number(broker.commissionPercentageRent)}% (A)</span>
                 </div>
               </div>
 
