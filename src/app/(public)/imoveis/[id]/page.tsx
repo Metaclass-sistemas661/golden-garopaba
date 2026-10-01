@@ -13,15 +13,25 @@ interface PropertyPageProps {
 export default async function PropertyPage({ params }: PropertyPageProps) {
   const { id } = await params
   
-  const property = await prisma.property.findUnique({
-    where: { id }
-  })
-  
-  if (!property) {
+  // UUID Validation
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(id)) {
     notFound()
   }
+  
+  let property = null;
+  let similarProperties = [];
 
-  const similarProperties = await prisma.property.findMany({
+  try {
+    property = await prisma.property.findUnique({
+      where: { id }
+    })
+    
+    if (!property) {
+      notFound()
+    }
+
+    similarProperties = await prisma.property.findMany({
     where: { 
       category: property.category,
       id: { not: property.id }
@@ -29,6 +39,10 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
     take: 3,
     orderBy: { createdAt: 'desc' }
   })
+  } catch (error) {
+    console.error("Error fetching property:", error);
+    notFound();
+  }
   
   return (
     <>
