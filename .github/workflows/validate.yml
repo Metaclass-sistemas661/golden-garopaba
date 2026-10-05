@@ -49,8 +49,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run NPM Audit
-        run: npm audit --audit-level=high
+      # Tier 1 — Runtime (production) dependencies: zero tolerance, no allowlist.
+      - name: Audit Production Dependencies (strict)
+        run: npm audit --omit=dev --audit-level=high
+
+      # Tier 2 — Full tree (incl. devDependencies) with a reviewed, documented
+      # allowlist (audit-ci.jsonc). Any NEW high/critical advisory fails the build.
+      - name: Audit Full Dependency Tree (audit-ci allowlist)
+        run: npm run audit:ci
 
   infrastructure-config:
     name: Infrastructure Config Validation
