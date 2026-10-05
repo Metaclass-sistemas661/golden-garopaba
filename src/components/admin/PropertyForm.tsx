@@ -759,14 +759,14 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
               </div>
 
               {photos.length > 0 && (
-                <div className={styles.photoPreviewGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+                <div className={styles.photoPreviewGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                   {photos.map((url: string, idx: number) => (
-                    <div key={idx} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    <div key={idx} style={{ position: 'relative', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
                       <Image src={url} alt={`Foto ${idx}`} fill unoptimized style={{ objectFit: 'cover' }} />
                       <button 
                         type="button" 
                         onClick={() => removePhoto(url)} 
-                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer' }}
+                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', zIndex: 10 }}
                       >
                         <Trash2 size={16} />
                       </button>
