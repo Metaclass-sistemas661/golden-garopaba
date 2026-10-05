@@ -8,7 +8,8 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit:ci": "audit-ci --config ./audit-ci.jsonc"
   },
   "dependencies": {
     "@googlemaps/markerclusterer": "^2.6.2",
@@ -41,6 +42,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "audit-ci": "^7.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "prisma": "^7.10.0",
@@ -50,6 +52,7 @@
     "mysql2": "^3.23.1",
     "deepmerge-ts": "^8.0.0",
     "brace-expansion": "^2.0.1",
-    "fast-uri": "^4.0.0"
+    "fast-uri": "^4.0.0",
+    "braces": "^3.0.3"
   }
 }

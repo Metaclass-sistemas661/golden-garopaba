@@ -1,0 +1,10 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  "high": true,
+  "allowlist": [
+    // GHSA-vfj7-8cjw-p6xm: "braces" stack-exhaustion DoS
+    // Dev dependency via eslint-config-next > micromatch > braces
+    // No patch exists as of Oct 2026. Zero risk to production runtime.
+    "GHSA-vfj7-8cjw-p6xm"
+  ]
+}
