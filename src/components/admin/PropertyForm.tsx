@@ -257,6 +257,18 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     setPhotos(photos.filter(url => url !== urlToRemove))
   }
 
+  // Reordenação de fotos (drag & drop + botões)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  const movePhoto = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= photos.length) return
+    const next = [...photos]
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+    setPhotos(next)
+  }
+
   // Form Submit
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -758,11 +770,33 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 </div>
               </div>
 
+              {photos.length > 1 && (
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '1rem' }}>💡 Arraste as fotos para reordenar. A primeira foto é a capa do anúncio.</p>
+              )}
               {photos.length > 0 && (
                 <div className={styles.photoPreviewGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                   {photos.map((url: string, idx: number) => (
-                    <div key={idx} style={{ position: 'relative', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
-                      <Image src={url} alt={`Foto ${idx}`} fill unoptimized style={{ objectFit: 'cover' }} />
+                    <div
+                      key={url}
+                      draggable
+                      onDragStart={(e) => { setDragIndex(idx); e.dataTransfer.effectAllowed = 'move' }}
+                      onDragOver={(e) => { e.preventDefault(); if (dragOverIndex !== idx) setDragOverIndex(idx) }}
+                      onDragLeave={() => setDragOverIndex(null)}
+                      onDrop={(e) => { e.preventDefault(); if (dragIndex !== null) movePhoto(dragIndex, idx); setDragIndex(null); setDragOverIndex(null) }}
+                      onDragEnd={() => { setDragIndex(null); setDragOverIndex(null) }}
+                      style={{ position: 'relative', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', cursor: 'grab', background: '#f1f5f9', opacity: dragIndex === idx ? 0.4 : 1, border: dragOverIndex === idx && dragIndex !== idx ? '3px dashed #10b981' : idx === 0 ? '3px solid #10b981' : '1px solid #e2e8f0', transition: 'border 0.15s, opacity 0.15s' }}
+                    >
+                      <Image src={url} alt={`Foto ${idx + 1}`} fill unoptimized draggable={false} style={{ objectFit: 'cover', pointerEvents: 'none' }} />
+                      <span style={{ position: 'absolute', top: '5px', left: '5px', background: idx === 0 ? '#10b981' : 'rgba(15,23,42,0.75)', color: 'white', fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', zIndex: 10 }}>
+                        {idx === 0 ? '★ Capa' : `#${idx + 1}`}
+                      </span>
+                      <div style={{ position: 'absolute', bottom: '5px', left: '5px', right: '5px', display: 'flex', gap: '4px', justifyContent: 'center', zIndex: 10 }}>
+                        <button type="button" title="Mover para esquerda" disabled={idx === 0} onClick={() => movePhoto(idx, idx - 1)} style={{ background: 'rgba(15,23,42,0.75)', color: 'white', border: 'none', borderRadius: '4px', padding: '3px', cursor: 'pointer', opacity: idx === 0 ? 0.4 : 1 }}><ChevronLeft size={16} /></button>
+                        {idx !== 0 && (
+                          <button type="button" title="Definir como capa" onClick={() => movePhoto(idx, 0)} style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}>★ Capa</button>
+                        )}
+                        <button type="button" title="Mover para direita" disabled={idx === photos.length - 1} onClick={() => movePhoto(idx, idx + 1)} style={{ background: 'rgba(15,23,42,0.75)', color: 'white', border: 'none', borderRadius: '4px', padding: '3px', cursor: 'pointer', opacity: idx === photos.length - 1 ? 0.4 : 1 }}><ChevronRight size={16} /></button>
+                      </div>
                       <button 
                         type="button" 
                         onClick={() => removePhoto(url)} 
