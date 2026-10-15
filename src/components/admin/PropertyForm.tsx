@@ -277,6 +277,19 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     // Validates before sending to server. Highlights invalid fields inline.
     const newErrors: Record<string, string> = {}
 
+    // Campos obrigatórios — o atributo HTML `required` não funciona em abas
+    // que não estão montadas, então validamos aqui explicitamente.
+    const missing: string[] = []
+    if (!title.trim()) missing.push('Título do Imóvel')
+    if (!code.trim()) missing.push('Código de Referência (REF)')
+    if (!transactionType) missing.push('Transação Principal')
+    if (!selectedType) missing.push('Tipo Específico')
+    if (missing.length > 0) {
+      setActiveTab('basic')
+      alert(`Preencha os campos obrigatórios na aba "Informações Básicas":\n\n• ${missing.join('\n• ')}`)
+      return
+    }
+
     // Cidade é obrigatória para garantir qualidade do geocoding
     if (!city.trim()) {
       newErrors.city = 'Cidade é obrigatória para localização no mapa'
@@ -313,6 +326,15 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
       descriptionRef.current = descElement.innerHTML
     }
 
+    // Converte "120,5" / "-28,02" / "1.200" com segurança (nunca NaN)
+    const toNum = (v: string): number | null => {
+      if (!v || !v.trim()) return null
+      let s = v.trim().replace(/[^\d,.\-]/g, '')
+      if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.')
+      const n = Number(s)
+      return Number.isFinite(n) ? n : null
+    }
+
     const payload = {
       title, code, transactionType, category: selectedCategory, propertyType: selectedType,
       location: composeLocation(), description: descriptionRef.current,
@@ -327,23 +349,28 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
       rentPrice: parseCurrencyToNumber(rentPrice), 
       condoPrice: parseCurrencyToNumber(condoPrice), 
       iptuPrice: parseCurrencyToNumber(iptuPrice), 
-      areaTotal: areaTotal ? Number(areaTotal) : null, 
-      areaUseful: areaUseful ? Number(areaUseful) : null, 
-      bedrooms: bedrooms ? Number(bedrooms) : 0, 
-      suites: suites ? Number(suites) : 0, 
-      bathrooms: bathrooms ? Number(bathrooms) : 0, 
-      parkingSpaces: parkingSpaces ? Number(parkingSpaces) : 0,
+      areaTotal: toNum(areaTotal), 
+      areaUseful: toNum(areaUseful), 
+      bedrooms: toNum(bedrooms) ?? 0, 
+      suites: toNum(suites) ?? 0, 
+      bathrooms: toNum(bathrooms) ?? 0, 
+      parkingSpaces: toNum(parkingSpaces) ?? 0,
       features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable, featured, status,
-      latitude: latitude ? Number(latitude) : undefined,
-      longitude: longitude ? Number(longitude) : undefined
+      latitude: toNum(latitude),
+      longitude: toNum(longitude)
     }
 
-    const res = await saveProperty(payload, isEdit, initialData?.id)
-    
-    if (res.success) {
-      router.push('/painel/imoveis')
-    } else {
-      alert('Erro ao salvar o imóvel: ' + res.error)
+    try {
+      const res = await saveProperty(payload, isEdit, initialData?.id)
+      if (res.success) {
+        router.push('/painel/imoveis')
+      } else {
+        alert('Erro ao salvar o imóvel: ' + res.error)
+        setIsSaving(false)
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Erro de comunicação com o servidor. Verifique sua conexão e tente novamente.')
       setIsSaving(false)
     }
   }
@@ -611,8 +638,16 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                     className={styles.editorTextarea}
                     contentEditable={true}
                     suppressContentEditableWarning={true}
-                    dangerouslySetInnerHTML={{ __html: initialData?.description || '' }}
+                    ref={(el) => {
+                      // Restaura o conteúdo mais recente ao (re)montar a aba,
+                      // sem sobrescrever enquanto o usuário digita.
+                      if (el && el.dataset.hydrated !== 'true') {
+                        el.innerHTML = descriptionRef.current || ''
+                        el.dataset.hydrated = 'true'
+                      }
+                    }}
                     onInput={(e) => { descriptionRef.current = e.currentTarget.innerHTML }}
+                    onBlur={(e) => { descriptionRef.current = e.currentTarget.innerHTML }}
                   ></div>
                 </div>
               </div>

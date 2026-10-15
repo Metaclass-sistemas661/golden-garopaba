@@ -168,13 +168,101 @@ export interface PropertyPayload {
   longitude?: number | null;
 }
 
+// ============================================================================
+// Sanitização numérica robusta (aceita "1.234,56", "-28,02", "120.5", números)
+// Nunca retorna NaN/Infinity — o Prisma rejeita esses valores.
+// ============================================================================
+function toSafeNumber(val: unknown): number | null {
+  if (val === null || val === undefined || val === '') return null
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null
+  let s = String(val).trim().replace(/[^\d,.\-]/g, '')
+  if (!s) return null
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.') // formato BR
+  const n = Number(s)
+  return Number.isFinite(n) ? n : null
+}
+
+function toSafeInt(val: unknown): number {
+  const n = toSafeNumber(val)
+  return n === null ? 0 : Math.max(0, Math.round(n))
+}
+
+const MAX_PRICE = 9_999_999_999.99 // Decimal(12,2)
+const MAX_AREA = 99_999_999.99     // Decimal(10,2)
+const TRANSACTION_TYPES = ['SALE', 'RENT', 'LANCAMENTO']
+const CATEGORIES = ['RESIDENTIAL', 'COMMERCIAL', 'RURAL']
+const STATUSES = ['AVAILABLE', 'SOLD', 'RENTED']
+
+function mapPrismaError(err: unknown): string {
+  const e = err as { code?: string; meta?: { target?: string[] | string }; message?: string }
+  switch (e?.code) {
+    case 'P2002': {
+      const target = Array.isArray(e.meta?.target) ? e.meta?.target.join(',') : String(e.meta?.target || '')
+      if (target.includes('code')) return 'Já existe um imóvel com este Código de Referência (REF). Use outro código.'
+      return 'Já existe um registro com esses dados únicos.'
+    }
+    case 'P2025': return 'Imóvel não encontrado. Ele pode ter sido excluído.'
+    case 'P2000': return 'Algum campo excede o tamanho permitido.'
+    case 'P1001': case 'P1002': case 'P1017': return 'Falha de conexão com o banco de dados. Tente novamente em instantes.'
+  }
+  const msg = e?.message || ''
+  if (msg.includes('Invalid') && msg.includes('invocation')) {
+    // Extrai a última linha útil da mensagem do Prisma
+    const lines = msg.split('\n').map(l => l.trim()).filter(Boolean)
+    return `Dados inválidos: ${lines[lines.length - 1] || 'verifique os campos do formulário.'}`
+  }
+  return msg || 'Erro desconhecido ao salvar o imóvel.'
+}
+
 export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
   try {
     // ========================================================================
+    // Validação de campos obrigatórios e enums (server-side)
+    // ========================================================================
+    const missing: string[] = []
+    if (!data.title?.trim()) missing.push('Título')
+    if (!data.code?.trim()) missing.push('Código de Referência (REF)')
+    if (!TRANSACTION_TYPES.includes(String(data.transactionType))) missing.push('Transação Principal')
+    if (!CATEGORIES.includes(String(data.category))) missing.push('Categoria Global')
+    if (!data.propertyType?.trim()) missing.push('Tipo Específico')
+    if (missing.length) {
+      return { success: false, error: `Preencha os campos obrigatórios: ${missing.join(', ')}.` }
+    }
+    if (isEdit && !id) {
+      return { success: false, error: 'ID do imóvel ausente para edição.' }
+    }
+
+    const priceNums = {
+      price: toSafeNumber(data.price),
+      rentPrice: toSafeNumber(data.rentPrice),
+      condoPrice: toSafeNumber(data.condoPrice),
+      iptuPrice: toSafeNumber(data.iptuPrice),
+    }
+    const areaNums = {
+      areaTotal: toSafeNumber(data.areaTotal),
+      areaUseful: toSafeNumber(data.areaUseful),
+    }
+    for (const [k, v] of Object.entries(priceNums)) {
+      if (v !== null && (v < 0 || v > MAX_PRICE)) return { success: false, error: `Valor inválido em ${k}: deve estar entre 0 e 9.999.999.999,99.` }
+    }
+    for (const [k, v] of Object.entries(areaNums)) {
+      if (v !== null && (v < 0 || v > MAX_AREA)) return { success: false, error: `Área inválida em ${k}.` }
+    }
+
+    // Código único: checagem amigável antes de tentar gravar
+    const code = data.code.trim()
+    const dup = await prisma.property.findFirst({
+      where: { code, ...(isEdit && id ? { NOT: { id } } : {}) },
+      select: { id: true }
+    })
+    if (dup) {
+      return { success: false, error: `Já existe um imóvel com o código "${code}". Use outro Código de Referência.` }
+    }
+    // ========================================================================
     // Enterprise Geocoding: Auto-resolve coordinates from address
     // ========================================================================
-    let latitude = data.latitude ? Number(data.latitude) : null
-    let longitude = data.longitude ? Number(data.longitude) : null
+    let latitude = toSafeNumber(data.latitude)
+    let longitude = toSafeNumber(data.longitude)
     
     // Se estiver editando e o endereço mudou, forçar novo geocoding
     if (isEdit && id && data.location) {
@@ -238,8 +326,8 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
     const addr = addressResult.sanitized
 
     const payload = {
-      title: data.title,
-      code: data.code,
+      title: data.title.trim(),
+      code,
       transactionType: data.transactionType as import('@prisma/client').TransactionType,
       category: data.category as import('@prisma/client').PropertyCategory,
       propertyType: data.propertyType,
@@ -252,17 +340,17 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       city:         addr.city,
       state:        addr.state,
       zipCode:      addr.zipCode,
-      description: data.description,
-      price: data.price ? Number(data.price) : 0,
-      rentPrice: data.rentPrice ? Number(data.rentPrice) : null,
-      condoPrice: data.condoPrice ? Number(data.condoPrice) : null,
-      iptuPrice: data.iptuPrice ? Number(data.iptuPrice) : null,
-      areaTotal: data.areaTotal ? Number(data.areaTotal) : null,
-      areaUseful: data.areaUseful ? Number(data.areaUseful) : null,
-      bedrooms: data.bedrooms ? Number(data.bedrooms) : 0,
-      suites: data.suites ? Number(data.suites) : 0,
-      bathrooms: data.bathrooms ? Number(data.bathrooms) : 0,
-      parkingSpaces: data.parkingSpaces ? Number(data.parkingSpaces) : 0,
+      description: data.description || '',
+      price: priceNums.price ?? 0,
+      rentPrice: priceNums.rentPrice,
+      condoPrice: priceNums.condoPrice,
+      iptuPrice: priceNums.iptuPrice,
+      areaTotal: areaNums.areaTotal,
+      areaUseful: areaNums.areaUseful,
+      bedrooms: toSafeInt(data.bedrooms),
+      suites: toSafeInt(data.suites),
+      bathrooms: toSafeInt(data.bathrooms),
+      parkingSpaces: toSafeInt(data.parkingSpaces),
       features: data.features || [],
       leisure: data.leisure || [],
       security: data.security || [],
@@ -274,7 +362,7 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       videoLink: data.videoLink || null,
       financeable: data.financeable || false,
       featured: data.featured || false,
-      status: (data.status || 'AVAILABLE') as import('@prisma/client').PropertyStatus,
+      status: (STATUSES.includes(String(data.status)) ? data.status : 'AVAILABLE') as import('@prisma/client').PropertyStatus,
       latitude,
       longitude
     }
@@ -302,8 +390,7 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
     console.error('Mensagem:', (err as Error)?.message)
     console.error('Meta:', JSON.stringify((err as Record<string, unknown>)?.meta, null, 2))
     console.error('Erro completo:', err)
-    const errorMessage = (err as Error)?.message || 'Erro desconhecido'
-    return { success: false, error: errorMessage }
+    return { success: false, error: mapPrismaError(error) }
   }
 }
 
