@@ -54,8 +54,8 @@ export default function PropertyDetails({ property, similarProperties }: Propert
   }
 
   const handleWhatsappClick = () => {
-    const phoneNumber = "5511999999999"
-    const message = encodeURIComponent(`Ola, vi o imovel codigo ${property.code} (${property.title}) no site e gostaria de mais informacoes.`)
+    const phoneNumber = "5548996435501"
+    const message = encodeURIComponent(`Olá, vi o imóvel código ${property.code} (${property.title}) no site e gostaria de mais informações.`)
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
   }
 

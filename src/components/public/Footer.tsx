@@ -23,7 +23,7 @@ export default function Footer() {
         <div className={styles.ctaGlassBox}>
           <h2>O Seu Novo Lar Está Aqui.</h2>
           <p>Fale com nossa equipe e receba um atendimento personalizado para encontrar o seu imóvel ideal.</p>
-          <a href="https://wa.me/5548999999999?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" target="_blank" rel="noopener noreferrer" className={styles.ctaButton}>
+          <a href="https://wa.me/5548996435501?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" target="_blank" rel="noopener noreferrer" className={styles.ctaButton}>
             Falar com Corretor Agora
           </a>
         </div>
@@ -50,7 +50,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <span className={styles.contactLabel}>Telefone / WhatsApp</span>
-                  <a href="tel:+5548999999999">+55 (48) 99999-9999</a>
+                  <a href="https://wa.me/5548996435501" target="_blank" rel="noopener noreferrer">+55 (48) 99643-5501</a>
                 </li>
                 <li>
                   <span className={styles.contactLabel}>Endereço</span>
@@ -88,7 +88,7 @@ export default function Footer() {
 
       {/* Floating WhatsApp Button */}
       <a 
-        href="https://wa.me/5548999999999?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" 
+        href="https://wa.me/5548996435501?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" 
         target="_blank" 
         rel="noopener noreferrer"
         style={{
