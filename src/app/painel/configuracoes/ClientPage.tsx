@@ -6,6 +6,7 @@ import styles from './page.module.css'
 import { updateSettings } from '@/app/actions/settings'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { processSingleImage, ACCEPTED_FILE_TYPES, ProcessedImage } from '@/utils/imageProcessing'
 
 export default function ClientPage({ initialSettings }: { initialSettings: import('@prisma/client').SystemSettings | null }) {
   const [activeTab, setActiveTab] = useState('geral')
@@ -29,7 +30,8 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(initialSettings?.twoFactorEnabled || false)
   const [logoUrl, setLogoUrl] = useState(initialSettings?.logoUrl || '')
-  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoFile, setLogoFile] = useState<ProcessedImage | null>(null)
+  const [processingLogo, setProcessingLogo] = useState(false)
 
   const supabase = createClient()
 
@@ -39,24 +41,33 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setLogoFile(file)
-      setLogoUrl(URL.createObjectURL(file))
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setProcessingLogo(true)
+    try {
+      // Logos: preserva transparência e mantém boa resolução
+      const img = await processSingleImage(file, { maxDimension: 1600, transparent: true })
+      setLogoFile(img)
+      setLogoUrl(URL.createObjectURL(img.blob))
+    } catch (err) {
+      console.error('Erro ao processar logo:', err)
+      alert(`Não foi possível ler a imagem "${file.name}": ${err instanceof Error ? err.message : 'formato inválido'}`)
+    } finally {
+      setProcessingLogo(false)
     }
   }
 
   const uploadLogo = async () => {
     if (!logoFile) return logoUrl
 
-    const fileExt = logoFile.name.split('.').pop()
-    const fileName = `logo_${Date.now()}.${fileExt}`
+    const fileName = `logo_${Date.now()}.${logoFile.ext}`
     const filePath = `settings/${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from('properties') // Usando o bucket público existente
-      .upload(filePath, logoFile)
+      .upload(filePath, logoFile.blob, { contentType: logoFile.contentType, cacheControl: '31536000' })
 
     if (uploadError) {
       console.error('Erro no upload da logo:', uploadError)
@@ -168,8 +179,8 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
                   <h4>Logo Oficial</h4>
                   <p>Essa logo aparecerá no cabeçalho do seu site e nos contratos gerados.</p>
                   <label className={styles.uploadBtn} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', width: 'max-content' }}>
-                    <UploadCloud size={16} /> Fazer Upload
-                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                    {processingLogo ? <Loader2 size={16} className={styles.spinner} /> : <UploadCloud size={16} />} {processingLogo ? 'Processando...' : 'Fazer Upload'}
+                    <input type="file" accept={ACCEPTED_FILE_TYPES} onChange={handleFileChange} style={{ display: 'none' }} disabled={processingLogo} />
                   </label>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
 import { PropertyDTO } from '@/types/dto'
+import { processUploadFile, ACCEPTED_FILE_TYPES } from '@/utils/imageProcessing'
 
 interface PropertyFormProps {
   initialData?: PropertyDTO;
@@ -229,28 +230,38 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     
+    const files = Array.from(e.target.files)
+    e.target.value = '' // permite selecionar o mesmo arquivo novamente
     setUploadingFiles(true)
     const supabase = createClient()
     const newPhotos = [...photos]
+    const failures: string[] = []
 
-    for (let i = 0; i < e.target.files.length; i++) {
-      const file = e.target.files[i]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
-      const filePath = `imoveis/${fileName}`
-
-      const { data, error } = await supabase.storage.from('properties').upload(filePath, file)
-      if (error) {
-        console.error('Upload error', error)
-        alert('Erro ao fazer upload da imagem: ' + file.name)
-      } else if (data) {
-        const { data: publicUrlData } = supabase.storage.from('properties').getPublicUrl(filePath)
-        newPhotos.push(publicUrlData.publicUrl)
+    for (const file of files) {
+      try {
+        const images = await processUploadFile(file)
+        for (const img of images) {
+          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${img.ext}`
+          const filePath = `imoveis/${fileName}`
+          const { error } = await supabase.storage
+            .from('properties')
+            .upload(filePath, img.blob, { contentType: img.contentType, cacheControl: '31536000' })
+          if (error) throw error
+          const { data: publicUrlData } = supabase.storage.from('properties').getPublicUrl(filePath)
+          newPhotos.push(publicUrlData.publicUrl)
+          setPhotos([...newPhotos])
+        }
+      } catch (err) {
+        console.error('Upload error', file.name, err)
+        failures.push(`${file.name}: ${err instanceof Error ? err.message : 'erro desconhecido'}`)
       }
     }
-    
+
     setPhotos(newPhotos)
     setUploadingFiles(false)
+    if (failures.length) {
+      alert(`Não foi possível enviar ${failures.length} arquivo(s):\n\n• ${failures.join('\n• ')}`)
+    }
   }
 
   const removePhoto = (urlToRemove: string) => {
@@ -797,7 +808,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                   <input 
                     type="file" 
                     multiple 
-                    accept="image/*" 
+                    accept={ACCEPTED_FILE_TYPES}
                     ref={fileInputRef} 
                     style={{ display: 'none' }} 
                     onChange={handleFileUpload}

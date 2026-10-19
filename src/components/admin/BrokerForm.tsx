@@ -10,6 +10,7 @@ import { saveBroker } from '@/app/actions/brokers'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber } from '@/utils/mask'
 import { BrokerDTO } from '@/types/dto'
+import { processSingleImage, ACCEPTED_FILE_TYPES, ProcessedImage } from '@/utils/imageProcessing'
 
 interface BrokerFormProps {
   initialData?: BrokerDTO
@@ -23,7 +24,8 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
 
   // Estados dos inputs
   const [avatarUrl, setAvatarUrl] = useState(initialData?.avatarUrl || '')
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarFile, setAvatarFile] = useState<ProcessedImage | null>(null)
+  const [processingAvatar, setProcessingAvatar] = useState(false)
   
   const [fullName, setFullName] = useState(initialData?.fullName || '')
   const [displayName, setDisplayName] = useState(initialData?.displayName || '')
@@ -49,24 +51,32 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
 
   const supabase = createClient()
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setAvatarFile(file)
-      setAvatarUrl(URL.createObjectURL(file))
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setProcessingAvatar(true)
+    try {
+      const img = await processSingleImage(file, { maxDimension: 1024 })
+      setAvatarFile(img)
+      setAvatarUrl(URL.createObjectURL(img.blob))
+    } catch (err) {
+      console.error('Erro ao processar foto:', err)
+      alert(`Não foi possível ler a imagem "${file.name}": ${err instanceof Error ? err.message : 'formato inválido'}`)
+    } finally {
+      setProcessingAvatar(false)
     }
   }
 
   const uploadAvatar = async () => {
     if (!avatarFile) return avatarUrl
 
-    const fileExt = avatarFile.name.split('.').pop()
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${avatarFile.ext}`
     const filePath = `avatars/${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from('properties')
-      .upload(filePath, avatarFile)
+      .upload(filePath, avatarFile.blob, { contentType: avatarFile.contentType, cacheControl: '31536000' })
 
     if (uploadError) {
       console.error('Erro no upload da foto:', uploadError)
@@ -155,7 +165,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
         </aside>
 
         <form id="brokerForm" className={styles.formContent} onSubmit={handleSave}>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={ACCEPTED_FILE_TYPES} style={{ display: 'none' }} />
           
           {/* TAB 1: Pessoal */}
           <div style={{ display: activeTab === 'personal' ? 'block' : 'none' }}>
@@ -165,7 +175,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
               <div className={styles.avatarUploadArea}>
                 <div className={styles.avatarCircle}>
                   {avatarUrl ? (
-                    <Image src={avatarUrl} alt="Avatar" width={96} height={96} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                    <Image src={avatarUrl} alt="Avatar" width={96} height={96} unoptimized style={{ borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <UserCircle2 size={48} strokeWidth={1} />
                   )}
@@ -174,8 +184,8 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
                   <strong>Foto de Perfil (Avatar)</strong>
                   <p>Uma foto profissional ajuda a gerar confiança com o cliente.</p>
                   <div>
-                    <button type="button" className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
-                      Escolher Foto...
+                    <button type="button" className={styles.uploadBtn} disabled={processingAvatar} onClick={() => fileInputRef.current?.click()}>
+                      {processingAvatar ? 'Processando...' : 'Escolher Foto...'}
                     </button>
                   </div>
                 </div>
