@@ -101,11 +101,14 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     getSettings()
       .then(async s => {
         if (cancelled) return
-        const name = s?.companyName?.trim() || null
-        if (!name) { setWatermarkStatus('missing'); return }
-        await prepareWatermark(name) // pré-carrega a fonte
+        // companyName tem @default('Minha Imobiliária') no banco, então nunca é null.
+        // Aceitamos qualquer nome que não seja o placeholder padrão.
+        const raw = s?.companyName?.trim() ?? ''
+        const isDefault = raw === '' || raw.toLowerCase() === 'minha imobiliária'
+        if (isDefault) { setWatermarkStatus('missing'); return }
+        await prepareWatermark(raw) // pré-carrega a fonte (async, idempotente)
         if (!cancelled) {
-          setWatermarkText(name)
+          setWatermarkText(raw)
           setWatermarkStatus('ready')
         }
       })
@@ -829,21 +832,28 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
             <div className={styles.tabContent}>
               <h2>Galeria de Fotos (Supabase Storage)</h2>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '0.9rem 1.1rem', borderRadius: '10px', marginBottom: '1rem', border: '1px solid', borderColor: watermarkStatus === 'ready' && watermarkEnabled ? '#a7f3d0' : '#fde68a', background: watermarkStatus === 'ready' && watermarkEnabled ? '#ecfdf5' : '#fffbeb' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>🛡️ Proteção com marca d&apos;água</strong>
-                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                    {watermarkStatus === 'loading' && 'Carregando nome da imobiliária...'}
-                    {watermarkStatus === 'ready' && (watermarkEnabled
-                      ? `"${watermarkText}" será gravado em dourado no centro de cada foto (não pode ser removido por quem baixar).`
-                      : 'Desativada — as próximas fotos serão enviadas sem proteção.')}
-                    {watermarkStatus === 'missing' && 'Nome da imobiliária não configurado. Preencha em Configurações → Minha Imobiliária.'}
-                  </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.9rem 1.1rem', borderRadius: '10px', marginBottom: '1rem', border: '1px solid', borderColor: watermarkStatus === 'ready' && watermarkEnabled ? '#a7f3d0' : watermarkStatus === 'missing' ? '#fca5a5' : '#fde68a', background: watermarkStatus === 'ready' && watermarkEnabled ? '#ecfdf5' : watermarkStatus === 'missing' ? '#fef2f2' : '#fffbeb' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>🛡️ Proteção com marca d&apos;água dourada</strong>
+                    <span style={{ fontSize: '0.8rem', color: '#475569' }}>
+                      {watermarkStatus === 'loading' && 'Carregando nome da imobiliária...'}
+                      {watermarkStatus === 'ready' && (watermarkEnabled
+                        ? `"​${watermarkText}​" será gravado em dourado no centro de CADA NOVA foto enviada.`
+                        : 'Desativada — as próximas fotos serão enviadas SEM proteção.')}
+                      {watermarkStatus === 'missing' && 'Configure o nome real da imobiliária em Configurações → Minha Imobiliária (não use o padrão).'}
+                    </span>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, cursor: watermarkStatus === 'ready' ? 'pointer' : 'not-allowed', opacity: watermarkStatus === 'ready' ? 1 : 0.5, whiteSpace: 'nowrap' }}>
+                    <input id="watermarkToggle" type="checkbox" checked={watermarkEnabled && watermarkStatus === 'ready'} disabled={watermarkStatus !== 'ready'} onChange={e => setWatermarkEnabled(e.target.checked)} />
+                    Ativar marca d&apos;água
+                  </label>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, cursor: watermarkStatus === 'ready' ? 'pointer' : 'not-allowed', opacity: watermarkStatus === 'ready' ? 1 : 0.5 }}>
-                  <input id="watermarkToggle" type="checkbox" checked={watermarkEnabled && watermarkStatus === 'ready'} disabled={watermarkStatus !== 'ready'} onChange={e => setWatermarkEnabled(e.target.checked)} />
-                  Aplicar marca d&apos;água dourada
-                </label>
+                {watermarkStatus === 'ready' && (
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                    ⚠️ A marca d’água é gravada nos pixels apenas nas fotos recém-enviadas. Fotos já existentes precisam do script de migração: <code>npx tsx scripts/watermark-existing-photos.ts --apply</code>
+                  </p>
+                )}
               </div>
               
               <div className={styles.formGroup}>

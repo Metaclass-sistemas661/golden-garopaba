@@ -81,100 +81,112 @@ const GOLD_COLOR = '#C5A55A'        // Dourado elegante
 const GOLD_LIGHT = '#E8D5A3'        // Dourado claro (para brilho)
 
 let fontLoaded = false
-async function ensureFont() {
-  if (fontLoaded) return
-  try {
-    // Carrega Playfair Display do Google Fonts (elegante, serifada)
-    const font = new FontFace(
-      'Playfair Display',
-      'url(https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2)',
-      { weight: '700', style: 'normal' }
-    )
-    const loaded = await font.load()
-    document.fonts.add(loaded)
-    fontLoaded = true
-  } catch {
-    // Fallback silencioso para Georgia/serif se Google Fonts indisponível
-    fontLoaded = true
-  }
+let fontLoadPromise: Promise<void> | null = null
+
+/** Carrega Playfair Display do Google Fonts e adiciona ao document. Idempotente. */
+function ensureFont(): Promise<void> {
+  if (fontLoaded) return Promise.resolve()
+  if (fontLoadPromise) return fontLoadPromise
+  fontLoadPromise = (async () => {
+    try {
+      const font = new FontFace(
+        'Playfair Display',
+        'url(https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2)',
+        { weight: '700', style: 'normal' }
+      )
+      const loaded = await font.load()
+      document.fonts.add(loaded)
+    } catch {
+      // Fallback silencioso: Georgia/serif também é elegante
+    } finally {
+      fontLoaded = true
+    }
+  })()
+  return fontLoadPromise
 }
 
 /**
  * Grava o nome da imobiliária em texto dourado no centro da foto.
- * Sem fundo, sem caixa — apenas o texto puro com efeitos de profundidade.
+ * Técnica multi-passada robusta — testada e visível em qualquer cor de fundo.
  *
- * Técnica multi-passada para garantir legibilidade em qualquer foto:
- *   1. Sombra escura atrás (visível em fotos claras)
- *   2. Contorno sutil claro (visível em fotos escuras)
- *   3. Texto dourado principal com brilho
+ * IMPORTANTE: esta função é async porque aguarda o carregamento da fonte
+ * antes de desenhar, garantindo que Playfair Display seja usada.
  */
-function applyWatermark(canvas: HTMLCanvasElement) {
+async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   const text = opts.watermarkText
   if (!text) return
+
+  // Garante que a fonte está carregada ANTES de medir/desenhar
+  await ensureFont()
 
   const ctx = canvas.getContext('2d')!
   const W = canvas.width
   const H = canvas.height
 
-  // Tamanho do texto proporcional à imagem (≈4% da largura, mín 20px, máx 120px)
-  const fontSize = Math.max(20, Math.min(120, Math.round(W * 0.04)))
-  const font = `700 ${fontSize}px ${WATERMARK_FONT}`
-  ctx.font = font
-  const metrics = ctx.measureText(text.toUpperCase())
-  const textW = metrics.width
-  const textH = fontSize
-
-  // Centralizado
-  const x = (W - textW) / 2
-  const y = (H + textH * 0.35) / 2
+  // Tamanho proporcional: 5% da largura, entre 24px e 140px
+  const fontSize = Math.max(24, Math.min(140, Math.round(W * 0.05)))
+  const fontStr = `bold ${fontSize}px "Playfair Display", Georgia, serif`
 
   ctx.save()
-  ctx.font = font
-  ctx.textBaseline = 'alphabetic'
+  ctx.font = fontStr
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
 
-  const blur = Math.max(3, Math.round(fontSize * 0.08))
+  const cx = W / 2
+  const cy = H / 2
+  const blur = Math.max(4, Math.round(fontSize * 0.10))
+  const label = text.toUpperCase()
 
-  // Passada 1: Sombra escura profunda (contorno que aparece em fotos claras)
-  ctx.globalAlpha = 0.55
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.95)'
-  ctx.shadowBlur = blur * 3
+  // ── Passada 1: sombra escura sólida (garante legibilidade em fotos claras) ──
+  // Usamos strokeText com fill sólido: técnica confiável em todos os browsers
+  ctx.globalAlpha = 0.60
+  ctx.shadowColor = 'rgba(0,0,0,1)'
+  ctx.shadowBlur = blur * 4
   ctx.shadowOffsetX = 0
   ctx.shadowOffsetY = 0
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.01)' // quase invisível, só pra ativar a sombra
-  ctx.fillText(text.toUpperCase(), x, y)
+  ctx.fillStyle = 'rgba(0,0,0,0.001)'      // quase invisível: ativa a sombra
+  ctx.strokeStyle = 'rgba(0,0,0,0.001)'
+  ctx.lineWidth = fontSize * 0.08
+  ctx.strokeText(label, cx, cy)            // strokeText é mais confiável p/ sombra
+  ctx.fillText(label, cx, cy)
 
-  // Passada 2: Halo claro (contorno que aparece em fotos escuras)
-  ctx.globalAlpha = 0.35
-  ctx.shadowColor = 'rgba(255, 255, 255, 0.9)'
+  // ── Passada 2: halo branco difuso (garante legibilidade em fotos escuras) ──
+  ctx.globalAlpha = 0.45
+  ctx.shadowColor = 'rgba(255,255,255,1)'
   ctx.shadowBlur = blur * 2
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.01)'
-  ctx.fillText(text.toUpperCase(), x, y)
+  ctx.fillStyle = 'rgba(255,255,255,0.001)'
+  ctx.strokeStyle = 'rgba(255,255,255,0.001)'
+  ctx.strokeText(label, cx, cy)
+  ctx.fillText(label, cx, cy)
 
-  // Passada 3: Texto dourado principal — sólido e elegante
+  // ── Passada 3: texto dourado principal — sólido e visível ──
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 0.50
-  ctx.fillStyle = GOLD_COLOR
-  ctx.fillText(text.toUpperCase(), x, y)
+  ctx.globalAlpha = 0.70            // 70%: bem visível sem cobrir a foto
+  ctx.fillStyle = GOLD_COLOR        // #C5A55A
+  ctx.strokeStyle = 'rgba(80,50,0,0.3)'   // borda sutilíssima marrom para definição
+  ctx.lineWidth = 1
+  ctx.strokeText(label, cx, cy)
+  ctx.fillText(label, cx, cy)
 
-  // Passada 4: Brilho dourado sutil sobre o texto (efeito metalizado)
-  ctx.globalAlpha = 0.25
-  ctx.fillStyle = GOLD_LIGHT
-  ctx.shadowColor = GOLD_LIGHT
+  // ── Passada 4: brilho metalizado dourado claro ──
+  ctx.globalAlpha = 0.30
+  ctx.shadowColor = GOLD_LIGHT      // #E8D5A3
   ctx.shadowBlur = blur
-  ctx.fillText(text.toUpperCase(), x, y)
+  ctx.fillStyle = GOLD_LIGHT
+  ctx.fillText(label, cx, cy)
 
   ctx.restore()
 }
 
-/** Carrega a fonte e valida que o texto pode ser renderizado. */
+/** Pré-carrega a fonte para garantir que está pronta na hora do upload. */
 export async function prepareWatermark(text: string): Promise<string> {
   await ensureFont()
   return text
 }
 
 async function finalize(canvas: HTMLCanvasElement, sourceName: string): Promise<ProcessedImage> {
-  applyWatermark(canvas)
+  await applyWatermark(canvas)   // ← await: garante fonte carregada e texto desenhado
   const { blob, ext } = await canvasToBlob(canvas)
   return { blob, ext, contentType: blob.type, sourceName }
 }
