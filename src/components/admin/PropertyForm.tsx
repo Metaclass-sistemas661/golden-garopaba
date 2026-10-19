@@ -9,7 +9,7 @@ import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
 import { PropertyDTO } from '@/types/dto'
-import { processUploadFile, loadWatermark, ACCEPTED_FILE_TYPES } from '@/utils/imageProcessing'
+import { processUploadFile, prepareWatermark, ACCEPTED_FILE_TYPES } from '@/utils/imageProcessing'
 import { getSettings } from '@/app/actions/settings'
 
 interface PropertyFormProps {
@@ -91,27 +91,25 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [uploadingFiles, setUploadingFiles] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Marca d'água (logo do sistema gravada nos pixels das fotos)
-  const [watermarkUrl, setWatermarkUrl] = useState<string | null>(null)
+  // Marca d'água — nome da empresa em texto dourado gravado nos pixels
+  const [watermarkText, setWatermarkText] = useState<string | null>(null)
   const [watermarkEnabled, setWatermarkEnabled] = useState(true)
-  const [watermarkStatus, setWatermarkStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading')
+  const [watermarkStatus, setWatermarkStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
 
   useEffect(() => {
     let cancelled = false
     getSettings()
       .then(async s => {
         if (cancelled) return
-        if (!s?.logoUrl) { setWatermarkStatus('missing'); return }
-        setWatermarkUrl(s.logoUrl)
-        try {
-          await loadWatermark(s.logoUrl) // pré-carrega e valida
-          if (!cancelled) setWatermarkStatus('ready')
-        } catch (err) {
-          console.error('[Watermark] Falha ao carregar logo:', err)
-          if (!cancelled) setWatermarkStatus('error')
+        const name = s?.companyName?.trim() || null
+        if (!name) { setWatermarkStatus('missing'); return }
+        await prepareWatermark(name) // pré-carrega a fonte
+        if (!cancelled) {
+          setWatermarkText(name)
+          setWatermarkStatus('ready')
         }
       })
-      .catch(() => { if (!cancelled) setWatermarkStatus('error') })
+      .catch(() => { if (!cancelled) setWatermarkStatus('missing') })
     return () => { cancelled = true }
   }, [])
   
@@ -258,14 +256,9 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     const files = Array.from(e.target.files)
     e.target.value = '' // permite selecionar o mesmo arquivo novamente
 
-    let watermark = null
-    if (watermarkEnabled && watermarkUrl) {
-      try {
-        watermark = await loadWatermark(watermarkUrl)
-      } catch (err) {
-        console.error('[Watermark]', err)
-        if (!confirm('Não foi possível carregar a logo para a marca d\'água.\n\nDeseja enviar as fotos SEM proteção?')) return
-      }
+    let watermarkTextFinal: string | null = null
+    if (watermarkEnabled && watermarkText) {
+      watermarkTextFinal = watermarkText
     }
     setUploadingFiles(true)
     const supabase = createClient()
@@ -274,7 +267,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
 
     for (const file of files) {
       try {
-        const images = await processUploadFile(file, { watermark })
+        const images = await processUploadFile(file, { watermarkText: watermarkTextFinal })
         for (const img of images) {
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${img.ext}`
           const filePath = `imoveis/${fileName}`
@@ -840,17 +833,16 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>🛡️ Proteção com marca d&apos;água</strong>
                   <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                    {watermarkStatus === 'loading' && 'Carregando logo do sistema...'}
+                    {watermarkStatus === 'loading' && 'Carregando nome da imobiliária...'}
                     {watermarkStatus === 'ready' && (watermarkEnabled
-                      ? 'A logo será gravada no centro de cada foto enviada (não pode ser removida por quem baixar).'
+                      ? `"${watermarkText}" será gravado em dourado no centro de cada foto (não pode ser removido por quem baixar).`
                       : 'Desativada — as próximas fotos serão enviadas sem proteção.')}
-                    {watermarkStatus === 'missing' && 'Nenhuma logo cadastrada. Envie a logo em Configurações → Minha Imobiliária.'}
-                    {watermarkStatus === 'error' && 'Não foi possível carregar a logo. Verifique em Configurações.'}
+                    {watermarkStatus === 'missing' && 'Nome da imobiliária não configurado. Preencha em Configurações → Minha Imobiliária.'}
                   </span>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, cursor: watermarkStatus === 'ready' ? 'pointer' : 'not-allowed', opacity: watermarkStatus === 'ready' ? 1 : 0.5 }}>
                   <input id="watermarkToggle" type="checkbox" checked={watermarkEnabled && watermarkStatus === 'ready'} disabled={watermarkStatus !== 'ready'} onChange={e => setWatermarkEnabled(e.target.checked)} />
-                  Aplicar marca d&apos;água
+                  Aplicar marca d&apos;água dourada
                 </label>
               </div>
               

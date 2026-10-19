@@ -47,31 +47,68 @@ async function download(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/** Camada da logo com opacidade, cor sólida opcional (sombra/halo) e desfoque. */
-async function logoLayer(logo: Buffer, w: number, h: number, opacity: number, color?: { r: number; g: number; b: number }, blur = 0) {
-  let base = await sharp(logo).resize(w, h, { fit: 'inside' }).ensureAlpha().png().toBuffer()
-  const meta = await sharp(base).metadata()
-  const lw = meta.width!, lh = meta.height!
+/**
+ * Gera o overlay SVG com o nome da imobiliária em texto dourado semitransparente.
+ * Sharp suporta SVG nativamente via librsvg — sem dependências extras.
+ * O texto é renderizado com filtros de sombra e brilho dourado.
+ */
+function buildTextSvg(text: string, W: number, H: number): Buffer {
+  const fontSize = Math.max(20, Math.min(120, Math.round(W * 0.04)))
+  // Estimativa conservadora da largura do texto (será centralizado pelo SVG)
+  const svgW = W
+  const svgH = H
+  const cx = W / 2
+  const cy = H / 2 + fontSize * 0.35
+  const blur = Math.max(3, Math.round(fontSize * 0.08))
+  const label = text.toUpperCase().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  if (color) {
-    // Silhueta colorida: cor sólida recortada pelo alfa da logo
-    base = await sharp({ create: { width: lw, height: lh, channels: 4, background: { ...color, alpha: 1 } } })
-      .composite([{ input: base, blend: 'dest-in' }])
-      .png().toBuffer()
-  }
-  // Margem para o desfoque não ser cortado
-  const pad = Math.ceil(blur * 3)
-  let img = sharp(base).extend({ top: pad, bottom: pad, left: pad, right: pad, background: { r: 0, g: 0, b: 0, alpha: 0 } })
-  if (blur > 0.3) img = sharp(await img.png().toBuffer()).blur(blur)
-  // Aplica opacidade multiplicando o canal alfa
-  const out = await sharp(await img.png().toBuffer())
-    .composite([{ input: Buffer.from([255, 255, 255, Math.round(255 * opacity)]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }])
-    .png().toBuffer()
-  return { buffer: out, width: lw + pad * 2, height: lh + pad * 2 }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="${blur * 1.5}" flood-color="rgba(0,0,0,0.9)" flood-opacity="0.55"/>
+    </filter>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="${blur}" flood-color="#E8D5A3" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <!-- Sombra escura: visível em fotos claras -->
+  <text
+    x="${cx}" y="${cy}"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="${fontSize}"
+    font-weight="bold"
+    fill="rgba(0,0,0,0.01)"
+    filter="url(#shadow)"
+    opacity="1"
+  >${label}</text>
+  <!-- Texto dourado principal -->
+  <text
+    x="${cx}" y="${cy}"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="${fontSize}"
+    font-weight="bold"
+    fill="#C5A55A"
+    opacity="0.52"
+  >${label}</text>
+  <!-- Brilho dourado claro (efeito metálico) -->
+  <text
+    x="${cx}" y="${cy}"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="${fontSize}"
+    font-weight="bold"
+    fill="#E8D5A3"
+    filter="url(#glow)"
+    opacity="0.28"
+  >${label}</text>
+</svg>`
+  return Buffer.from(svg)
 }
 
-/** Mesma composição do navegador: sombra escura + halo claro + logo (≈38%). */
-async function watermark(photo: Buffer, logo: Buffer): Promise<Buffer> {
+/** Aplica marca d'água em texto dourado (sem fundo). */
+async function watermark(photo: Buffer, companyName: string): Promise<Buffer> {
   const resized = await sharp(photo, { failOn: 'none' })
     .rotate() // aplica orientação EXIF
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
@@ -79,25 +116,10 @@ async function watermark(photo: Buffer, logo: Buffer): Promise<Buffer> {
     .toBuffer({ resolveWithObject: true })
   const W = resized.info.width, H = resized.info.height
 
-  const lm = await sharp(logo).metadata()
-  let w = W * 0.45
-  let h = w * (lm.height! / lm.width!)
-  if (h > H * 0.45) { h = H * 0.45; w = h * (lm.width! / lm.height!) }
-  w = Math.round(w); h = Math.round(h)
-  const blur = Math.max(2, Math.round(Math.min(W, H) * 0.006))
+  const overlay = buildTextSvg(companyName, W, H)
 
-  const layers = await Promise.all([
-    logoLayer(logo, w, h, 0.22, { r: 0, g: 0, b: 0 }, blur * 2),
-    logoLayer(logo, w, h, 0.18, { r: 255, g: 255, b: 255 }, blur),
-    logoLayer(logo, w, h, 0.38),
-  ])
-
-  return sharp(resized.data)
-    .composite(layers.map(l => ({
-      input: l.buffer,
-      left: Math.max(0, Math.round((W - l.width) / 2)),
-      top: Math.max(0, Math.round((H - l.height) / 2)),
-    })))
+  return sharp(resized.data, { raw: { width: W, height: H, channels: 3 } })
+    .composite([{ input: overlay, top: 0, left: 0, blend: 'over' }])
     .webp({ quality: 88 })
     .toBuffer()
 }
@@ -114,9 +136,9 @@ async function main() {
   console.log(APPLY ? '🚀 MODO EXECUÇÃO (alterações serão gravadas)\n' : '🔎 MODO SIMULAÇÃO (use --apply para executar)\n')
 
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
-  if (!settings?.logoUrl) throw new Error('Nenhuma logo cadastrada em Configurações. Cadastre antes de rodar.')
-  const logo = await sharp(await download(settings.logoUrl), { density: 300 }).png().toBuffer()
-  console.log(`🖼️  Logo: ${settings.logoUrl}\n`)
+  const companyName = settings?.companyName?.trim()
+  if (!companyName) throw new Error('Nome da imobiliária não configurado. Preencha em Configurações → Minha Imobiliária.')
+  console.log(`🏢  Empresa: ${companyName}\n`)
 
   if (APPLY) await ensureBackupBucket()
 
@@ -154,7 +176,7 @@ async function main() {
         if (bErr) throw new Error(`backup: ${bErr.message}`)
 
         // 2) Gera e envia versão protegida
-        const protectedImg = await watermark(original, logo)
+        const protectedImg = await watermark(original, companyName)
         const newPath = `imoveis/${WM_PREFIX}${Math.random().toString(36).slice(2, 12)}_${Date.now()}.webp`
         const { error: uErr } = await supabase.storage.from(PUBLIC_BUCKET)
           .upload(newPath, protectedImg, { contentType: 'image/webp', cacheControl: '31536000' })

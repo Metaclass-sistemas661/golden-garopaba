@@ -21,23 +21,17 @@ const MAX_DIMENSION = 4000
 const QUALITY = 0.88
 
 export interface ProcessOptions {
-  /** Lado maior máximo em px (padrão 2560) */
+  /** Lado maior máximo em px (padrão 4000) */
   maxDimension?: number
   /** Preserva transparência (logos). Fallback em PNG em vez de JPEG. */
   transparent?: boolean
-  /** Marca d'água gravada nos pixels (carregue com loadWatermark) */
-  watermark?: Watermark | null
-}
-
-export interface Watermark {
-  image: CanvasImageSource
-  width: number
-  height: number
+  /** Texto da marca d'água (nome da imobiliária) */
+  watermarkText?: string | null
 }
 
 // Opções da conversão em andamento (uploads são processados sequencialmente)
-let opts: { maxDimension: number; transparent: boolean; watermark: Watermark | null } =
-  { maxDimension: MAX_DIMENSION, transparent: false, watermark: null }
+let opts: { maxDimension: number; transparent: boolean; watermarkText: string | null } =
+  { maxDimension: MAX_DIMENSION, transparent: false, watermarkText: null }
 
 export interface ProcessedImage {
   blob: Blob
@@ -71,7 +65,6 @@ function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
   canvas.height = h
   const ctx = canvas.getContext('2d')!
   if (!opts.transparent) {
-    // Fundo branco: evita transparência virar preto no JPEG
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, w, h)
   }
@@ -81,80 +74,103 @@ function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
   return canvas
 }
 
+// ─── WATERMARK: texto dourado puro, sem fundo ────────────────────────────────
+
+const WATERMARK_FONT = '"Playfair Display", "Georgia", "Times New Roman", serif'
+const GOLD_COLOR = '#C5A55A'        // Dourado elegante
+const GOLD_LIGHT = '#E8D5A3'        // Dourado claro (para brilho)
+
+let fontLoaded = false
+async function ensureFont() {
+  if (fontLoaded) return
+  try {
+    // Carrega Playfair Display do Google Fonts (elegante, serifada)
+    const font = new FontFace(
+      'Playfair Display',
+      'url(https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2)',
+      { weight: '700', style: 'normal' }
+    )
+    const loaded = await font.load()
+    document.fonts.add(loaded)
+    fontLoaded = true
+  } catch {
+    // Fallback silencioso para Georgia/serif se Google Fonts indisponível
+    fontLoaded = true
+  }
+}
+
 /**
- * Grava a logo no centro da imagem, semitransparente.
- * Um halo claro + sombra escura garantem visibilidade em fotos claras e escuras,
- * dificultando remoção por recorte ou ajuste de níveis.
+ * Grava o nome da imobiliária em texto dourado no centro da foto.
+ * Sem fundo, sem caixa — apenas o texto puro com efeitos de profundidade.
+ *
+ * Técnica multi-passada para garantir legibilidade em qualquer foto:
+ *   1. Sombra escura atrás (visível em fotos claras)
+ *   2. Contorno sutil claro (visível em fotos escuras)
+ *   3. Texto dourado principal com brilho
  */
 function applyWatermark(canvas: HTMLCanvasElement) {
-  const wm = opts.watermark
-  if (!wm || !wm.width || !wm.height) return
-  const ctx = canvas.getContext('2d')!
-  const { width: W, height: H } = canvas
+  const text = opts.watermarkText
+  if (!text) return
 
-  // Logo ocupa ~45% da largura, limitada a 45% da altura
-  let w = W * 0.45
-  let h = w * (wm.height / wm.width)
-  if (h > H * 0.45) { h = H * 0.45; w = h * (wm.width / wm.height) }
-  const x = (W - w) / 2
-  const y = (H - h) / 2
-  const blur = Math.max(2, Math.round(Math.min(W, H) * 0.006))
+  const ctx = canvas.getContext('2d')!
+  const W = canvas.width
+  const H = canvas.height
+
+  // Tamanho do texto proporcional à imagem (≈4% da largura, mín 20px, máx 120px)
+  const fontSize = Math.max(20, Math.min(120, Math.round(W * 0.04)))
+  const font = `700 ${fontSize}px ${WATERMARK_FONT}`
+  ctx.font = font
+  const metrics = ctx.measureText(text.toUpperCase())
+  const textW = metrics.width
+  const textH = fontSize
+
+  // Centralizado
+  const x = (W - textW) / 2
+  const y = (H + textH * 0.35) / 2
 
   ctx.save()
-  ctx.imageSmoothingQuality = 'high'
-  // Passada 1: sombra escura (aparece em fotos claras)
-  ctx.globalAlpha = 0.22
-  ctx.shadowColor = 'rgba(0,0,0,0.9)'
+  ctx.font = font
+  ctx.textBaseline = 'alphabetic'
+
+  const blur = Math.max(3, Math.round(fontSize * 0.08))
+
+  // Passada 1: Sombra escura profunda (contorno que aparece em fotos claras)
+  ctx.globalAlpha = 0.55
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.95)'
+  ctx.shadowBlur = blur * 3
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.01)' // quase invisível, só pra ativar a sombra
+  ctx.fillText(text.toUpperCase(), x, y)
+
+  // Passada 2: Halo claro (contorno que aparece em fotos escuras)
+  ctx.globalAlpha = 0.35
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.9)'
   ctx.shadowBlur = blur * 2
-  ctx.drawImage(wm.image, x, y, w, h)
-  // Passada 2: halo claro (aparece em fotos escuras)
-  ctx.globalAlpha = 0.18
-  ctx.shadowColor = 'rgba(255,255,255,0.9)'
-  ctx.shadowBlur = blur
-  ctx.drawImage(wm.image, x, y, w, h)
-  // Passada 3: logo em si
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.01)'
+  ctx.fillText(text.toUpperCase(), x, y)
+
+  // Passada 3: Texto dourado principal — sólido e elegante
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 0.38
-  ctx.drawImage(wm.image, x, y, w, h)
+  ctx.globalAlpha = 0.50
+  ctx.fillStyle = GOLD_COLOR
+  ctx.fillText(text.toUpperCase(), x, y)
+
+  // Passada 4: Brilho dourado sutil sobre o texto (efeito metalizado)
+  ctx.globalAlpha = 0.25
+  ctx.fillStyle = GOLD_LIGHT
+  ctx.shadowColor = GOLD_LIGHT
+  ctx.shadowBlur = blur
+  ctx.fillText(text.toUpperCase(), x, y)
+
   ctx.restore()
 }
 
-const watermarkCache = new Map<string, Promise<Watermark>>()
-
-/** Baixa a logo e prepara para uso como marca d'água (com cache). */
-export function loadWatermark(url: string): Promise<Watermark> {
-  if (!watermarkCache.has(url)) {
-    const p = (async () => {
-      // fetch + blob evita "tainted canvas" (CORS) ao exportar a imagem
-      const res = await fetch(url, { cache: 'force-cache' })
-      if (!res.ok) throw new Error(`Logo indisponível (HTTP ${res.status})`)
-      const blob = await res.blob()
-      const objUrl = URL.createObjectURL(blob)
-      try {
-        const img = await new Promise<HTMLImageElement>((ok, fail) => {
-          const el = new Image()
-          el.onload = () => ok(el)
-          el.onerror = () => fail(new Error('Logo em formato inválido'))
-          el.src = objUrl
-        })
-        // Rasteriza (necessário para SVG sem dimensões) em alta resolução
-        const nw = img.naturalWidth || 1200
-        const nh = img.naturalHeight || 400
-        const scale = Math.max(1, 1600 / Math.max(nw, nh))
-        const c = document.createElement('canvas')
-        c.width = Math.round(nw * scale)
-        c.height = Math.round(nh * scale)
-        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
-        return { image: c, width: c.width, height: c.height }
-      } finally {
-        URL.revokeObjectURL(objUrl)
-      }
-    })()
-    p.catch(() => watermarkCache.delete(url))
-    watermarkCache.set(url, p)
-  }
-  return watermarkCache.get(url)!
+/** Carrega a fonte e valida que o texto pode ser renderizado. */
+export async function prepareWatermark(text: string): Promise<string> {
+  await ensureFont()
+  return text
 }
 
 async function finalize(canvas: HTMLCanvasElement, sourceName: string): Promise<ProcessedImage> {
@@ -312,7 +328,7 @@ export async function processUploadFile(file: File, options: ProcessOptions = {}
   opts = {
     maxDimension: options.maxDimension ?? MAX_DIMENSION,
     transparent: options.transparent ?? false,
-    watermark: options.watermark ?? null,
+    watermarkText: options.watermarkText ?? null,
   }
   try {
     return await processInternal(file)
@@ -334,7 +350,7 @@ async function processInternal(file: File): Promise<ProcessedImage[]> {
 
   // GIF animado: mantém original para preservar animação — exceto quando há
   // marca d'água, pois um GIF sem proteção anularia a segurança.
-  if ((type === 'image/gif' || ext === 'gif') && !opts.watermark) {
+  if ((type === 'image/gif' || ext === 'gif') && !opts.watermarkText) {
     return [{ blob: file, ext: 'gif', contentType: 'image/gif', sourceName: file.name }]
   }
 
