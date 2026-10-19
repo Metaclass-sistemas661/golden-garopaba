@@ -12,6 +12,7 @@
 export const ACCEPTED_FILE_TYPES = [
   'image/*',
   'application/pdf',
+  'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence',
   '.jpg', '.jpeg', '.jfif', '.pjpeg', '.png', '.webp', '.avif', '.gif', '.bmp',
   '.ico', '.svg', '.heic', '.heif', '.tif', '.tiff', '.psd', '.pdf',
 ].join(',')
@@ -24,10 +25,19 @@ export interface ProcessOptions {
   maxDimension?: number
   /** Preserva transparência (logos). Fallback em PNG em vez de JPEG. */
   transparent?: boolean
+  /** Marca d'água gravada nos pixels (carregue com loadWatermark) */
+  watermark?: Watermark | null
+}
+
+export interface Watermark {
+  image: CanvasImageSource
+  width: number
+  height: number
 }
 
 // Opções da conversão em andamento (uploads são processados sequencialmente)
-let opts: Required<ProcessOptions> = { maxDimension: MAX_DIMENSION, transparent: false }
+let opts: { maxDimension: number; transparent: boolean; watermark: Watermark | null } =
+  { maxDimension: MAX_DIMENSION, transparent: false, watermark: null }
 
 export interface ProcessedImage {
   blob: Blob
@@ -71,7 +81,84 @@ function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
   return canvas
 }
 
+/**
+ * Grava a logo no centro da imagem, semitransparente.
+ * Um halo claro + sombra escura garantem visibilidade em fotos claras e escuras,
+ * dificultando remoção por recorte ou ajuste de níveis.
+ */
+function applyWatermark(canvas: HTMLCanvasElement) {
+  const wm = opts.watermark
+  if (!wm || !wm.width || !wm.height) return
+  const ctx = canvas.getContext('2d')!
+  const { width: W, height: H } = canvas
+
+  // Logo ocupa ~45% da largura, limitada a 45% da altura
+  let w = W * 0.45
+  let h = w * (wm.height / wm.width)
+  if (h > H * 0.45) { h = H * 0.45; w = h * (wm.width / wm.height) }
+  const x = (W - w) / 2
+  const y = (H - h) / 2
+  const blur = Math.max(2, Math.round(Math.min(W, H) * 0.006))
+
+  ctx.save()
+  ctx.imageSmoothingQuality = 'high'
+  // Passada 1: sombra escura (aparece em fotos claras)
+  ctx.globalAlpha = 0.22
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'
+  ctx.shadowBlur = blur * 2
+  ctx.drawImage(wm.image, x, y, w, h)
+  // Passada 2: halo claro (aparece em fotos escuras)
+  ctx.globalAlpha = 0.18
+  ctx.shadowColor = 'rgba(255,255,255,0.9)'
+  ctx.shadowBlur = blur
+  ctx.drawImage(wm.image, x, y, w, h)
+  // Passada 3: logo em si
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = 0.38
+  ctx.drawImage(wm.image, x, y, w, h)
+  ctx.restore()
+}
+
+const watermarkCache = new Map<string, Promise<Watermark>>()
+
+/** Baixa a logo e prepara para uso como marca d'água (com cache). */
+export function loadWatermark(url: string): Promise<Watermark> {
+  if (!watermarkCache.has(url)) {
+    const p = (async () => {
+      // fetch + blob evita "tainted canvas" (CORS) ao exportar a imagem
+      const res = await fetch(url, { cache: 'force-cache' })
+      if (!res.ok) throw new Error(`Logo indisponível (HTTP ${res.status})`)
+      const blob = await res.blob()
+      const objUrl = URL.createObjectURL(blob)
+      try {
+        const img = await new Promise<HTMLImageElement>((ok, fail) => {
+          const el = new Image()
+          el.onload = () => ok(el)
+          el.onerror = () => fail(new Error('Logo em formato inválido'))
+          el.src = objUrl
+        })
+        // Rasteriza (necessário para SVG sem dimensões) em alta resolução
+        const nw = img.naturalWidth || 1200
+        const nh = img.naturalHeight || 400
+        const scale = Math.max(1, 1600 / Math.max(nw, nh))
+        const c = document.createElement('canvas')
+        c.width = Math.round(nw * scale)
+        c.height = Math.round(nh * scale)
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        return { image: c, width: c.width, height: c.height }
+      } finally {
+        URL.revokeObjectURL(objUrl)
+      }
+    })()
+    p.catch(() => watermarkCache.delete(url))
+    watermarkCache.set(url, p)
+  }
+  return watermarkCache.get(url)!
+}
+
 async function finalize(canvas: HTMLCanvasElement, sourceName: string): Promise<ProcessedImage> {
+  applyWatermark(canvas)
   const { blob, ext } = await canvasToBlob(canvas)
   return { blob, ext, contentType: blob.type, sourceName }
 }
@@ -94,6 +181,9 @@ async function decodeNative(blob: Blob, name: string): Promise<ProcessedImage> {
       el.onerror = () => rej(new Error('Formato não suportado pelo navegador'))
       el.src = url
     })
+    const isSvg = blob.type.includes('svg') || /\.svg$/i.test(name)
+    // Sem dimensões = decodificação falhou silenciosamente (evita gerar imagem em branco)
+    if (!img.naturalWidth && !isSvg) throw new Error('Imagem sem dimensões (decodificação falhou)')
     const w = img.naturalWidth || 1920
     const h = img.naturalHeight || 1080
     return finalize(drawToCanvas(img, w, h), name)
@@ -102,13 +192,59 @@ async function decodeNative(blob: Blob, name: string): Promise<ProcessedImage> {
   }
 }
 
+/**
+ * Detecta HEIC/HEIF pelo conteúdo (assinatura ISO-BMFF "ftyp" + brand),
+ * independente de extensão ou MIME — cobre arquivos renomeados para .jpg,
+ * vindos do WhatsApp/AirDrop/Google Fotos, ou com MIME vazio no Windows.
+ */
+const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1', 'mif2', 'miaf']
+async function sniffHeic(file: Blob): Promise<boolean> {
+  try {
+    const head = new Uint8Array(await file.slice(0, 64).arrayBuffer())
+    if (head.length < 16) return false
+    const ascii = (a: number, b: number) => String.fromCharCode(...head.slice(a, b))
+    if (ascii(4, 8) !== 'ftyp') return false
+    const boxSize = Math.min(64, (head[0] << 24) | (head[1] << 16) | (head[2] << 8) | head[3])
+    const brands = [ascii(8, 12)]
+    for (let i = 16; i + 4 <= boxSize; i += 4) brands.push(ascii(i, i + 4))
+    // AVIF também usa mif1, mas navegadores modernos decodificam nativamente
+    if (brands.includes('avif') || brands.includes('avis')) return false
+    return brands.some(b => HEIF_BRANDS.includes(b))
+  } catch {
+    return false
+  }
+}
+
 async function decodeHeic(file: File): Promise<ProcessedImage> {
-  // Safari decodifica HEIC nativamente; tenta primeiro
-  try { return await decodeNative(file, file.name) } catch { /* usa heic2any */ }
-  const heic2any = (await import('heic2any')).default
-  const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.95 })
-  const jpeg = Array.isArray(out) ? out[0] : out
-  return decodeNative(jpeg, file.name)
+  const errors: string[] = []
+
+  // 1) Nativo: Safari/macOS/iOS (e Windows com extensão HEIF) decodificam direto
+  try { return await decodeNative(file, file.name) } catch (e) { errors.push(`nativo: ${(e as Error).message}`) }
+
+  // 2) heic-to (libheif 1.23 — suporta HEIC de iPhones recentes, HDR, grids, 10-bit)
+  try {
+    const { heicTo } = await import('heic-to/next')
+    const bmp = await heicTo({ blob: file, type: 'bitmap', options: { imageOrientation: 'from-image' } })
+    const canvas = drawToCanvas(bmp, bmp.width, bmp.height)
+    bmp.close()
+    return await finalize(canvas, file.name)
+  } catch (e) {
+    errors.push(`heic-to: ${(e as Error)?.message || e}`)
+  }
+
+  // 3) heic2any (libheif antigo) como último recurso
+  try {
+    const heic2any = (await import('heic2any')).default
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.95 })
+    const jpeg = Array.isArray(out) ? out[0] : out
+    return await decodeNative(jpeg, file.name)
+  } catch (e) {
+    const err = e as { message?: string; code?: number }
+    errors.push(`heic2any: ${err?.message || JSON.stringify(e)}`)
+  }
+
+  console.error('[HEIC] Todas as estratégias falharam:', file.name, errors)
+  throw new Error('Não foi possível converter o HEIC. No iPhone, ative Ajustes → Câmera → Formatos → "Mais Compatível" ou exporte como JPG.')
 }
 
 async function decodeTiff(file: File): Promise<ProcessedImage[]> {
@@ -173,7 +309,11 @@ async function decodePdf(file: File): Promise<ProcessedImage[]> {
 /** Converte um arquivo qualquer em uma ou mais imagens prontas para web. */
 export async function processUploadFile(file: File, options: ProcessOptions = {}): Promise<ProcessedImage[]> {
   const previous = opts
-  opts = { maxDimension: options.maxDimension ?? MAX_DIMENSION, transparent: options.transparent ?? false }
+  opts = {
+    maxDimension: options.maxDimension ?? MAX_DIMENSION,
+    transparent: options.transparent ?? false,
+    watermark: options.watermark ?? null,
+  }
   try {
     return await processInternal(file)
   } finally {
@@ -186,14 +326,15 @@ async function processInternal(file: File): Promise<ProcessedImage[]> {
   const type = (file.type || '').toLowerCase()
 
   if (type === 'application/pdf' || ext === 'pdf') return decodePdf(file)
-  if (type.includes('heic') || type.includes('heif') || ext === 'heic' || ext === 'heif') return [await decodeHeic(file)]
+  if (type.includes('heic') || type.includes('heif') || ext === 'heic' || ext === 'heif' || await sniffHeic(file)) return [await decodeHeic(file)]
   if (type === 'image/tiff' || ext === 'tif' || ext === 'tiff') {
     try { return [await decodeNative(file, file.name)] } catch { return decodeTiff(file) }
   }
   if (ext === 'psd' || type.includes('photoshop') || type === 'image/vnd.adobe.photoshop') return [await decodePsd(file)]
 
-  // GIF animado: mantém original para preservar animação
-  if (type === 'image/gif' || ext === 'gif') {
+  // GIF animado: mantém original para preservar animação — exceto quando há
+  // marca d'água, pois um GIF sem proteção anularia a segurança.
+  if ((type === 'image/gif' || ext === 'gif') && !opts.watermark) {
     return [{ blob: file, ext: 'gif', contentType: 'image/gif', sourceName: file.name }]
   }
 
