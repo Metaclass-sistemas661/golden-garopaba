@@ -17,7 +17,7 @@ export const ACCEPTED_FILE_TYPES = [
   '.ico', '.svg', '.heic', '.heif', '.tif', '.tiff', '.psd', '.pdf',
 ].join(',')
 
-const MAX_DIMENSION = 2560
+const MAX_DIMENSION = 4000
 const QUALITY = 0.88
 
 export interface ProcessOptions {

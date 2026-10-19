@@ -25,7 +25,7 @@ const ONLY_PROPERTY = process.argv.find(a => a.startsWith('--property='))?.split
 
 const PUBLIC_BUCKET = 'properties'
 const BACKUP_BUCKET = 'properties-originals'
-const MAX_DIMENSION = 2560
+const MAX_DIMENSION = 4000
 const WM_PREFIX = 'wm_'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
