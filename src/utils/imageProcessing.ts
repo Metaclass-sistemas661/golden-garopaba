@@ -257,7 +257,7 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
     ctx.save()
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalAlpha = 0.22   // fraquinha: discreta mas presente
+    ctx.globalAlpha = 0.48   // Mais nítida e visível, com cores mais escuras e definidas
     ctx.drawImage(wm.image, x, y, w, h)
     ctx.restore()
     return
