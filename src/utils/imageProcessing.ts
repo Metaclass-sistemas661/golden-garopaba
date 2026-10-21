@@ -20,19 +20,6 @@ export const ACCEPTED_FILE_TYPES = [
 const MAX_DIMENSION = 4000
 const QUALITY = 0.88
 
-export interface ProcessOptions {
-  /** Lado maior máximo em px (padrão 4000) */
-  maxDimension?: number
-  /** Preserva transparência (logos). Fallback em PNG em vez de JPEG. */
-  transparent?: boolean
-  /** Texto da marca d'água (nome da imobiliária) */
-  watermarkText?: string | null
-}
-
-// Opções da conversão em andamento (uploads são processados sequencialmente)
-let opts: { maxDimension: number; transparent: boolean; watermarkText: string | null } =
-  { maxDimension: MAX_DIMENSION, transparent: false, watermarkText: null }
-
 export interface ProcessedImage {
   blob: Blob
   ext: 'webp' | 'jpg' | 'png' | 'gif'
@@ -74,115 +61,245 @@ function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
   return canvas
 }
 
-// ─── WATERMARK: texto dourado puro, sem fundo ────────────────────────────────
+// ─── WATERMARK: logo sem fundo branco ────────────────────────────────────────
 
-const WATERMARK_FONT = '"Playfair Display", "Georgia", "Times New Roman", serif'
-const GOLD_COLOR = '#C5A55A'        // Dourado elegante
-const GOLD_LIGHT = '#E8D5A3'        // Dourado claro (para brilho)
+export interface Watermark {
+  /** Canvas com logo já processada (fundo branco removido) */
+  image: HTMLCanvasElement
+  width: number
+  height: number
+}
 
-let fontLoaded = false
-let fontLoadPromise: Promise<void> | null = null
+export interface ProcessOptions {
+  maxDimension?: number
+  transparent?: boolean
+  /** Logo para marca d'água (use loadWatermark). Fundo branco removido automaticamente. */
+  watermark?: Watermark | null
+  /** Texto fallback caso não haja logo cadastrada */
+  watermarkText?: string | null
+}
 
-/** Carrega Playfair Display do Google Fonts e adiciona ao document. Idempotente. */
-function ensureFont(): Promise<void> {
-  if (fontLoaded) return Promise.resolve()
-  if (fontLoadPromise) return fontLoadPromise
-  fontLoadPromise = (async () => {
-    try {
-      const font = new FontFace(
-        'Playfair Display',
-        'url(https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2)',
-        { weight: '700', style: 'normal' }
-      )
-      const loaded = await font.load()
-      document.fonts.add(loaded)
-    } catch {
-      // Fallback silencioso: Georgia/serif também é elegante
-    } finally {
-      fontLoaded = true
+// Redefine opts para incluir ambos os modos
+let opts: { maxDimension: number; transparent: boolean; watermark: Watermark | null; watermarkText: string | null } =
+  { maxDimension: MAX_DIMENSION, transparent: false, watermark: null, watermarkText: null }
+
+/**
+ * Remove o fundo da logo de forma profissional:
+ *
+ * 1. Detecta a cor de fundo pelas bordas da imagem (branco, off-white,
+ *    cinza claro ou qualquer cor sólida). Se as bordas já são transparentes,
+ *    a logo é mantida como está.
+ * 2. Flood-fill a partir das bordas: remove SOMENTE o fundo conectado às
+ *    bordas — detalhes brancos internos da logo (letras, ícones) são preservados.
+ * 3. Limpa o "halo" claro do anti-aliasing nas bordas da logo
+ *    (descontaminação de cor), evitando o contorno esbranquiçado.
+ * 4. Recorta as margens vazias (auto-trim), para a logo ficar
+ *    centralizada e no tamanho correto sobre a foto.
+ */
+function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+  const { width: w, height: h } = canvas
+  if (!w || !h) return canvas
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const d = imageData.data
+
+  // ── 1. Amostra as bordas ──
+  let total = 0, opaque = 0, sr = 0, sg = 0, sb = 0
+  const sample = (x: number, y: number) => {
+    const i = (y * w + x) * 4
+    total++
+    if (d[i + 3] > 200) { opaque++; sr += d[i]; sg += d[i + 1]; sb += d[i + 2] }
+  }
+  for (let x = 0; x < w; x++) { sample(x, 0); sample(x, h - 1) }
+  for (let y = 1; y < h - 1; y++) { sample(0, y); sample(w - 1, y) }
+
+  if (opaque / total >= 0.5) {
+    const bgR = sr / opaque, bgG = sg / opaque, bgB = sb / opaque
+    const dist = (i: number) =>
+      Math.max(Math.abs(d[i] - bgR), Math.abs(d[i + 1] - bgG), Math.abs(d[i + 2] - bgB))
+
+    // ── 2. Flood-fill a partir das bordas ──
+    const removed = new Uint8Array(w * h)
+    const queue = new Int32Array(w * h)
+    let head = 0, tail = 0
+    const push = (p: number) => {
+      if (removed[p]) return
+      const i = p * 4
+      if (d[i + 3] === 0 || dist(i) <= tolerance) { removed[p] = 1; queue[tail++] = p }
     }
-  })()
-  return fontLoadPromise
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x) }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1) }
+    while (head < tail) {
+      const p = queue[head++]
+      const x = p % w, y = (p / w) | 0
+      if (x > 0) push(p - 1)
+      if (x < w - 1) push(p + 1)
+      if (y > 0) push(p - w)
+      if (y < h - 1) push(p + w)
+    }
+    for (let p = 0; p < w * h; p++) if (removed[p]) d[p * 4 + 3] = 0
+
+    // ── 3. Descontamina o halo (pixels de borda misturados com o fundo) ──
+    const haloRange = tolerance * 3
+    for (let pass = 0; pass < 2; pass++) {
+      const edge: number[] = []
+      for (let p = 0; p < w * h; p++) {
+        if (removed[p]) continue
+        const x = p % w, y = (p / w) | 0
+        if ((x > 0 && removed[p - 1]) || (x < w - 1 && removed[p + 1]) ||
+            (y > 0 && removed[p - w]) || (y < h - 1 && removed[p + w])) edge.push(p)
+      }
+      for (const p of edge) {
+        const i = p * 4
+        const dd = dist(i)
+        if (dd < haloRange) {
+          const a = Math.max(0.05, dd / haloRange)
+          // Remove a contribuição da cor de fundo: c = (c_obs - bg*(1-a)) / a
+          d[i]     = Math.max(0, Math.min(255, Math.round((d[i]     - bgR * (1 - a)) / a)))
+          d[i + 1] = Math.max(0, Math.min(255, Math.round((d[i + 1] - bgG * (1 - a)) / a)))
+          d[i + 2] = Math.max(0, Math.min(255, Math.round((d[i + 2] - bgB * (1 - a)) / a)))
+          d[i + 3] = Math.round(d[i + 3] * a)
+        }
+        removed[p] = 2 // marca como processado para o próximo anel
+      }
+    }
+    ctx.putImageData(imageData, 0, 0)
+  }
+
+  // ── 4. Auto-trim das margens transparentes ──
+  let minX = w, minY = h, maxX = -1, maxY = -1
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 10) {
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      }
+    }
+  }
+  if (maxX < 0) return canvas // imagem vazia — devolve original
+  const pad = 2
+  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad)
+  maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad)
+  const tw = maxX - minX + 1, th = maxY - minY + 1
+  if (tw === w && th === h) return canvas
+  const out = document.createElement('canvas')
+  out.width = tw
+  out.height = th
+  out.getContext('2d')!.drawImage(canvas, minX, minY, tw, th, 0, 0, tw, th)
+  return out
+}
+
+const watermarkCache = new Map<string, Promise<Watermark>>()
+
+/**
+ * Baixa a logo, remove o fundo branco e prepara para uso como marca d'água.
+ * O resultado é cacheado — a mesma URL só é processada uma vez por sessão.
+ */
+export function loadWatermark(url: string): Promise<Watermark> {
+  if (!watermarkCache.has(url)) {
+    const p = (async () => {
+      // fetch + blob evita "tainted canvas" (CORS) ao exportar a imagem
+      const res = await fetch(url, { cache: 'force-cache' })
+      if (!res.ok) throw new Error(`Logo indisponível (HTTP ${res.status})`)
+      const blob = await res.blob()
+      const objUrl = URL.createObjectURL(blob)
+      try {
+        const img = await new Promise<HTMLImageElement>((ok, fail) => {
+          const el = new Image()
+          el.onload = () => ok(el)
+          el.onerror = () => fail(new Error('Logo em formato inválido'))
+          el.src = objUrl
+        })
+        // Rasteriza em alta resolução (necessário para SVG sem dimensões)
+        const nw = img.naturalWidth || 1200
+        const nh = img.naturalHeight || 400
+        const scale = Math.max(1, 1600 / Math.max(nw, nh))
+        const c = document.createElement('canvas')
+        c.width = Math.round(nw * scale)
+        c.height = Math.round(nh * scale)
+        // Não preenche fundo branco: preserva transparência original
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        // Remove o fundo (branco ou cor sólida), limpa halo e recorta margens
+        const clean = removeLogoBackground(c)
+        return { image: clean, width: clean.width, height: clean.height }
+      } finally {
+        URL.revokeObjectURL(objUrl)
+      }
+    })()
+    p.catch(() => watermarkCache.delete(url))
+    watermarkCache.set(url, p)
+  }
+  return watermarkCache.get(url)!
 }
 
 /**
- * Grava o nome da imobiliária em texto dourado no centro da foto.
- * Técnica multi-passada robusta — testada e visível em qualquer cor de fundo.
- *
- * IMPORTANTE: esta função é async porque aguarda o carregamento da fonte
- * antes de desenhar, garantindo que Playfair Display seja usada.
+ * Aplica a marca d'água no centro do canvas.
+ * Prioridade: logo (loadWatermark) > texto (watermarkText).
+ * Opacidade baixa (22%): discreta e elegante, não prejudica a foto.
  */
 async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
-  const text = opts.watermarkText
-  if (!text) return
-
-  // Garante que a fonte está carregada ANTES de medir/desenhar
-  await ensureFont()
-
   const ctx = canvas.getContext('2d')!
   const W = canvas.width
   const H = canvas.height
 
-  // Tamanho proporcional: 5% da largura, entre 24px e 140px
+  // ── Modo 1: Logo da imobiliária (sem fundo branco) ──
+  const wm = opts.watermark
+  if (wm && wm.width && wm.height) {
+    // Ocupa até 35% da largura, limitada a 35% da altura
+    let w = W * 0.35
+    let h = w * (wm.height / wm.width)
+    if (h > H * 0.35) { h = H * 0.35; w = h * (wm.width / wm.height) }
+    const x = (W - w) / 2
+    const y = (H - h) / 2
+
+    ctx.save()
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.globalAlpha = 0.22   // fraquinha: discreta mas presente
+    ctx.drawImage(wm.image, x, y, w, h)
+    ctx.restore()
+    return
+  }
+
+  // ── Modo 2: Texto dourado (fallback quando não há logo) ──
+  const text = opts.watermarkText
+  if (!text) return
+
   const fontSize = Math.max(24, Math.min(140, Math.round(W * 0.05)))
   const fontStr = `bold ${fontSize}px "Playfair Display", Georgia, serif`
+  const label = text.toUpperCase()
+  const blur = Math.max(4, Math.round(fontSize * 0.10))
 
   ctx.save()
   ctx.font = fontStr
   ctx.textBaseline = 'middle'
   ctx.textAlign = 'center'
 
-  const cx = W / 2
-  const cy = H / 2
-  const blur = Math.max(4, Math.round(fontSize * 0.10))
-  const label = text.toUpperCase()
-
-  // ── Passada 1: sombra escura sólida (garante legibilidade em fotos claras) ──
-  // Usamos strokeText com fill sólido: técnica confiável em todos os browsers
-  ctx.globalAlpha = 0.60
+  // Passada 1: sombra escura
+  ctx.globalAlpha = 0.55
   ctx.shadowColor = 'rgba(0,0,0,1)'
   ctx.shadowBlur = blur * 4
-  ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 0
-  ctx.fillStyle = 'rgba(0,0,0,0.001)'      // quase invisível: ativa a sombra
+  ctx.fillStyle = 'rgba(0,0,0,0.001)'
   ctx.strokeStyle = 'rgba(0,0,0,0.001)'
   ctx.lineWidth = fontSize * 0.08
-  ctx.strokeText(label, cx, cy)            // strokeText é mais confiável p/ sombra
-  ctx.fillText(label, cx, cy)
+  ctx.strokeText(label, W / 2, H / 2)
+  ctx.fillText(label, W / 2, H / 2)
 
-  // ── Passada 2: halo branco difuso (garante legibilidade em fotos escuras) ──
-  ctx.globalAlpha = 0.45
-  ctx.shadowColor = 'rgba(255,255,255,1)'
-  ctx.shadowBlur = blur * 2
-  ctx.fillStyle = 'rgba(255,255,255,0.001)'
-  ctx.strokeStyle = 'rgba(255,255,255,0.001)'
-  ctx.strokeText(label, cx, cy)
-  ctx.fillText(label, cx, cy)
-
-  // ── Passada 3: texto dourado principal — sólido e visível ──
+  // Passada 2: texto dourado principal
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 0.70            // 70%: bem visível sem cobrir a foto
-  ctx.fillStyle = GOLD_COLOR        // #C5A55A
-  ctx.strokeStyle = 'rgba(80,50,0,0.3)'   // borda sutilíssima marrom para definição
-  ctx.lineWidth = 1
-  ctx.strokeText(label, cx, cy)
-  ctx.fillText(label, cx, cy)
-
-  // ── Passada 4: brilho metalizado dourado claro ──
-  ctx.globalAlpha = 0.30
-  ctx.shadowColor = GOLD_LIGHT      // #E8D5A3
-  ctx.shadowBlur = blur
-  ctx.fillStyle = GOLD_LIGHT
-  ctx.fillText(label, cx, cy)
+  ctx.globalAlpha = 0.65
+  ctx.fillStyle = '#C5A55A'
+  ctx.fillText(label, W / 2, H / 2)
 
   ctx.restore()
 }
 
-/** Pré-carrega a fonte para garantir que está pronta na hora do upload. */
-export async function prepareWatermark(text: string): Promise<string> {
-  await ensureFont()
-  return text
+/** Pré-carrega a logo para uso como marca d'água. */
+export async function prepareWatermark(url: string): Promise<Watermark> {
+  return loadWatermark(url)
 }
 
 async function finalize(canvas: HTMLCanvasElement, sourceName: string): Promise<ProcessedImage> {
@@ -340,6 +457,7 @@ export async function processUploadFile(file: File, options: ProcessOptions = {}
   opts = {
     maxDimension: options.maxDimension ?? MAX_DIMENSION,
     transparent: options.transparent ?? false,
+    watermark: options.watermark ?? null,
     watermarkText: options.watermarkText ?? null,
   }
   try {
@@ -362,7 +480,7 @@ async function processInternal(file: File): Promise<ProcessedImage[]> {
 
   // GIF animado: mantém original para preservar animação — exceto quando há
   // marca d'água, pois um GIF sem proteção anularia a segurança.
-  if ((type === 'image/gif' || ext === 'gif') && !opts.watermarkText) {
+  if ((type === 'image/gif' || ext === 'gif') && !opts.watermarkText && !opts.watermark) {
     return [{ blob: file, ext: 'gif', contentType: 'image/gif', sourceName: file.name }]
   }
 

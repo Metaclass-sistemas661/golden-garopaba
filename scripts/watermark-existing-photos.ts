@@ -109,19 +109,20 @@ function buildTextSvg(text: string, W: number, H: number): Buffer {
 
 /** Aplica marca d'água em texto dourado (sem fundo). */
 async function watermark(photo: Buffer, companyName: string): Promise<Buffer> {
-  // Passo 1: redimensiona e achata (remove transparência) → PNG intermediário
-  const resizedBuf = await sharp(photo, { failOn: 'none' })
-    .rotate()                                                        // corrige EXIF
+  // sharp(Buffer) sem opções extras — deixa o sharp detectar o formato automaticamente
+  const resizedBuf = await sharp(photo)
+    .rotate()                          // corrige orientação EXIF
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
-    .flatten({ background: '#ffffff' })                             // garante RGB puro
-    .png()                                                           // intermediário sem compressão
+    .flatten({ background: { r: 255, g: 255, b: 255 } })  // remove transparência
+    .toFormat('png')                   // força PNG sem compressão como intermediário
     .toBuffer()
 
-  // Passo 2: obtém dimensões do buffer intermediário
-  const { width: W, height: H } = await sharp(resizedBuf).metadata()
-    .then(m => ({ width: m.width!, height: m.height! }))
+  // Obtém dimensões reais após o processamento
+  const meta = await sharp(resizedBuf).metadata()
+  const W = meta.width!
+  const H = meta.height!
 
-  // Passo 3: gera overlay SVG e compõe sobre a imagem PNG
+  // Overlay SVG com o texto dourado
   const overlay = buildTextSvg(companyName, W, H)
 
   return sharp(resizedBuf)

@@ -9,7 +9,7 @@ import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
 import { PropertyDTO } from '@/types/dto'
-import { processUploadFile, prepareWatermark, ACCEPTED_FILE_TYPES } from '@/utils/imageProcessing'
+import { processUploadFile, prepareWatermark, ACCEPTED_FILE_TYPES, type Watermark } from '@/utils/imageProcessing'
 import { getSettings } from '@/app/actions/settings'
 
 interface PropertyFormProps {
@@ -91,28 +91,41 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [uploadingFiles, setUploadingFiles] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Marca d'água — nome da empresa em texto dourado gravado nos pixels
+  // Marca d'água — LOGO da imobiliária (sem fundo), com fallback para o nome em texto
   const [watermarkText, setWatermarkText] = useState<string | null>(null)
+  const [watermarkLogo, setWatermarkLogo] = useState<Watermark | null>(null)
+  const [watermarkPreview, setWatermarkPreview] = useState<string | null>(null)
   const [watermarkEnabled, setWatermarkEnabled] = useState(true)
   const [watermarkStatus, setWatermarkStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
 
   useEffect(() => {
     let cancelled = false
-    getSettings()
-      .then(async s => {
+    ;(async () => {
+      try {
+        const s = await getSettings()
         if (cancelled) return
-        // companyName tem @default('Minha Imobiliária') no banco, então nunca é null.
-        // Aceitamos qualquer nome que não seja o placeholder padrão.
-        const raw = s?.companyName?.trim() ?? ''
-        const isDefault = raw === '' || raw.toLowerCase() === 'minha imobiliária'
-        if (isDefault) { setWatermarkStatus('missing'); return }
-        await prepareWatermark(raw) // pré-carrega a fonte (async, idempotente)
-        if (!cancelled) {
-          setWatermarkText(raw)
-          setWatermarkStatus('ready')
+        const name = s?.companyName?.trim() ?? ''
+        const isDefaultName = name === '' || name.toLowerCase() === 'minha imobiliária'
+        if (!isDefaultName) setWatermarkText(name)
+
+        const logoUrl = s?.logoUrl?.trim()
+        if (logoUrl) {
+          try {
+            const wm = await prepareWatermark(logoUrl)
+            if (cancelled) return
+            setWatermarkLogo(wm)
+            setWatermarkPreview(wm.image.toDataURL('image/png'))
+            setWatermarkStatus('ready')
+            return
+          } catch (err) {
+            console.warn('[Watermark] Falha ao carregar logo, usando texto:', err)
+          }
         }
-      })
-      .catch(() => { if (!cancelled) setWatermarkStatus('missing') })
+        if (!cancelled) setWatermarkStatus(isDefaultName ? 'missing' : 'ready')
+      } catch {
+        if (!cancelled) setWatermarkStatus('missing')
+      }
+    })()
     return () => { cancelled = true }
   }, [])
   
@@ -120,6 +133,101 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const [tourLink, setTourLink] = useState(initialData?.tourLink || '')
   const [videoLink, setVideoLink] = useState(initialData?.videoLink || '')
   const [financeable, setFinanceable] = useState(initialData?.financeable || false)
+
+  // ============================================================================
+  // Rascunho automático (localStorage)
+  // Garante que NENHUM dado digitado seja perdido em caso de erro, recarga da
+  // página, queda de conexão ou crash de renderização.
+  // ============================================================================
+  const DRAFT_KEY = `property-draft:${isEdit && initialData?.id ? initialData.id : 'new'}`
+  const [draftRestored, setDraftRestored] = useState(false)
+  const draftReadyRef = useRef(false)
+
+  const buildDraft = () => ({
+    v: 1, savedAt: Date.now(),
+    title, code, transactionType, status, selectedCategory, selectedType,
+    zipCode, street, addressNumber, complement, neighborhood, city, addressState,
+    price, rentPrice, condoPrice, iptuPrice, featured, latitude, longitude,
+    areaTotal, areaUseful, bedrooms, suites, bathrooms, parkingSpaces,
+    features, leisure, security, furniture, environments, infrastructure,
+    photos, tourLink, videoLink, financeable, description: descriptionRef.current,
+  })
+
+  // Restaura rascunho uma única vez, após montar (evita mismatch de hidratação)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (raw) {
+        const d = JSON.parse(raw)
+        if (d && d.v === 1) {
+          const s = (v: unknown, fb: string) => (typeof v === 'string' ? v : fb)
+          const a = (v: unknown, fb: string[]) => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : fb)
+          setTitle(s(d.title, title)); setCode(s(d.code, code))
+          setTransactionType(s(d.transactionType, transactionType))
+          if (['AVAILABLE','SOLD','RENTED'].includes(d.status)) setStatus(d.status)
+          if (['RESIDENTIAL','COMMERCIAL','RURAL'].includes(d.selectedCategory)) setSelectedCategory(d.selectedCategory)
+          setSelectedType(s(d.selectedType, selectedType))
+          setZipCode(s(d.zipCode, zipCode)); setStreet(s(d.street, street))
+          setAddressNumber(s(d.addressNumber, addressNumber)); setComplement(s(d.complement, complement))
+          setNeighborhood(s(d.neighborhood, neighborhood)); setCity(s(d.city, city))
+          setAddressState(s(d.addressState, addressState))
+          setPrice(s(d.price, price)); setRentPrice(s(d.rentPrice, rentPrice))
+          setCondoPrice(s(d.condoPrice, condoPrice)); setIptuPrice(s(d.iptuPrice, iptuPrice))
+          setFeatured(!!d.featured); setFinanceable(!!d.financeable)
+          setLatitude(s(d.latitude, latitude)); setLongitude(s(d.longitude, longitude))
+          setAreaTotal(s(d.areaTotal, areaTotal)); setAreaUseful(s(d.areaUseful, areaUseful))
+          setBedrooms(s(d.bedrooms, bedrooms)); setSuites(s(d.suites, suites))
+          setBathrooms(s(d.bathrooms, bathrooms)); setParkingSpaces(s(d.parkingSpaces, parkingSpaces))
+          setFeatures(a(d.features, features)); setLeisure(a(d.leisure, leisure))
+          setSecurity(a(d.security, security)); setFurniture(a(d.furniture, furniture))
+          setEnvironments(a(d.environments, environments)); setInfrastructure(a(d.infrastructure, infrastructure))
+          setPhotos(a(d.photos, photos))
+          setTourLink(s(d.tourLink, tourLink)); setVideoLink(s(d.videoLink, videoLink))
+          if (typeof d.description === 'string') {
+            descriptionRef.current = d.description
+            const el = document.getElementById('richTextDescription')
+            if (el) el.innerHTML = d.description
+          }
+          setDraftRestored(true)
+        }
+      }
+    } catch (err) {
+      console.warn('[Draft] Falha ao restaurar rascunho:', err)
+    } finally {
+      draftReadyRef.current = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Salva rascunho com debounce a cada alteração
+  useEffect(() => {
+    if (!draftReadyRef.current) return
+    const t = setTimeout(() => {
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft())) } catch { /* quota/privado */ }
+    }, 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, code, transactionType, status, selectedCategory, selectedType, zipCode, street, addressNumber, complement, neighborhood, city, addressState, price, rentPrice, condoPrice, iptuPrice, featured, latitude, longitude, areaTotal, areaUseful, bedrooms, suites, bathrooms, parkingSpaces, features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable])
+
+  // Salva imediatamente ao sair/recarregar a página (inclui descrição)
+  useEffect(() => {
+    const flush = () => {
+      if (!draftReadyRef.current) return
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft())) } catch { /* ignore */ }
+    }
+    window.addEventListener('beforeunload', flush)
+    window.addEventListener('pagehide', flush)
+    return () => { window.removeEventListener('beforeunload', flush); window.removeEventListener('pagehide', flush) }
+  })
+
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ } }
+
+  const discardDraft = () => {
+    if (!confirm('Descartar o rascunho e recarregar os dados originais?')) return
+    clearDraft()
+    draftReadyRef.current = false
+    window.location.reload()
+  }
 
   // Comandos do Rich Text Editor Nativo
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -136,107 +244,144 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
 
   // ============================================================================
   // CEP Lookup — Enterprise Grade
-  // ViaCEP API with: 5s timeout, 3 retries, exponential backoff, graceful fallback
+  // - Provedores: ViaCEP (primário) + BrasilAPI (fallback)
+  // - Timeout por tentativa, retries com backoff
+  // - Proteção contra race condition (só a última busca aplica resultado)
+  // - Proteção contra componente desmontado
+  // - NUNCA lança exceção: qualquer falha vira mensagem inline
   // ============================================================================
-  const lookupCEP = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, '')
-    if (cleanCep.length !== 8) {
-      setCepError('CEP deve ter 8 dígitos')
-      setCepSuccess(false)
-      return
+  const cepRequestIdRef = useRef(0)
+  const lastLookedUpCepRef = useRef<string>('')
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false; cepRequestIdRef.current++ }
+  }, [])
+
+  type CepResult = { street?: string; neighborhood?: string; city?: string; state?: string } | 'NOT_FOUND'
+
+  const fetchWithTimeout = async (url: string, ms: number) => {
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), ms)
+    try {
+      return await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, cache: 'no-store' })
+    } finally {
+      clearTimeout(id)
     }
+  }
 
-    setCepLoading(true)
-    setCepError('')
-    setCepSuccess(false)
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
-    const MAX_RETRIES = 3
-    const TIMEOUT_MS  = 5000
+  const CEP_PROVIDERS: Array<(cep: string) => Promise<CepResult>> = [
+    async (cep) => {
+      const r = await fetchWithTimeout(`https://viacep.com.br/ws/${cep}/json/`, 5000)
+      if (r.status === 400) return 'NOT_FOUND'
+      if (!r.ok) throw new Error(`ViaCEP HTTP ${r.status}`)
+      const d = await r.json().catch(() => null)
+      if (!d || typeof d !== 'object') throw new Error('ViaCEP resposta inválida')
+      if (d.erro) return 'NOT_FOUND'
+      return { street: str(d.logradouro), neighborhood: str(d.bairro), city: str(d.localidade), state: str(d.uf).toUpperCase() }
+    },
+    async (cep) => {
+      const r = await fetchWithTimeout(`https://brasilapi.com.br/api/cep/v1/${cep}`, 6000)
+      if (r.status === 404) return 'NOT_FOUND'
+      if (!r.ok) throw new Error(`BrasilAPI HTTP ${r.status}`)
+      const d = await r.json().catch(() => null)
+      if (!d || typeof d !== 'object') throw new Error('BrasilAPI resposta inválida')
+      return { street: str(d.street), neighborhood: str(d.neighborhood), city: str(d.city), state: str(d.state).toUpperCase() }
+    },
+  ]
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        // AbortController garante timeout de 5s por tentativa
-        const controller = new AbortController()
-        const timeoutId  = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const lookupCEP = async (cep: string, opts: { force?: boolean } = {}) => {
+    try {
+      const cleanCep = String(cep || '').replace(/\D/g, '')
+      if (cleanCep.length !== 8) {
+        setCepError('CEP deve ter 8 dígitos')
+        setCepSuccess(false)
+        return
+      }
+      // Evita buscas duplicadas do mesmo CEP (digitação + clique)
+      if (!opts.force && cleanCep === lastLookedUpCepRef.current && cepLoading) return
+      lastLookedUpCepRef.current = cleanCep
 
-        const response = await fetch(
-          `https://viacep.com.br/ws/${cleanCep}/json/`,
-          { signal: controller.signal }
-        )
-        clearTimeout(timeoutId)
+      const requestId = ++cepRequestIdRef.current
+      const isCurrent = () => mountedRef.current && requestId === cepRequestIdRef.current
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
+      setCepLoading(true)
+      setCepError('')
+      setCepSuccess(false)
+
+      let notFoundVotes = 0
+      let lastErr: unknown = null
+
+      for (const provider of CEP_PROVIDERS) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          if (!isCurrent()) return
+          try {
+            const result = await provider(cleanCep)
+            if (!isCurrent()) return
+            if (result === 'NOT_FOUND') { notFoundVotes++; break } // tenta próximo provedor
+
+            // Preenche só campos retornados (preserva edição manual)
+            if (result.street)       setStreet(result.street)
+            if (result.neighborhood) setNeighborhood(result.neighborhood)
+            if (result.city)         { setCity(result.city); setAddressErrors(prev => { const n = { ...prev }; delete n.city; return n }) }
+            if (result.state && /^[A-Z]{2}$/.test(result.state)) setAddressState(result.state)
+
+            setCepSuccess(true)
+            setCepError('')
+            setCepLoading(false)
+            setTimeout(() => {
+              if (!mountedRef.current) return
+              const numberInput = document.getElementById('addressNumber') as HTMLInputElement | null
+              numberInput?.focus()
+            }, 150)
+            return
+          } catch (err) {
+            lastErr = err
+            if (attempt < 2) await new Promise(r => setTimeout(r, 400 * attempt))
+          }
         }
+      }
 
-        const data = await response.json()
-
-        // ViaCEP retorna { erro: true } para CEPs inexistentes
-        if (data.erro) {
-          setCepError('CEP não encontrado. Preencha o endereço manualmente.')
-          setCepSuccess(false)
-          setCepLoading(false)
-          return
-        }
-
-        // Preenche os campos automaticamente com os dados retornados
-        // Só sobrescreve se o ViaCEP retornou valor (preserva edição manual)
-        if (data.logradouro) setStreet(data.logradouro)
-        if (data.bairro)     setNeighborhood(data.bairro)
-        if (data.localidade) setCity(data.localidade)
-        if (data.uf)         setAddressState(data.uf)
-
-        setCepSuccess(true)
-        setCepError('')
+      if (!isCurrent()) return
+      setCepSuccess(false)
+      setCepLoading(false)
+      if (notFoundVotes > 0 && !lastErr) {
+        setCepError('CEP não encontrado. Preencha o endereço manualmente.')
+      } else if (notFoundVotes > 0) {
+        setCepError('CEP não localizado. Confira o número ou preencha o endereço manualmente.')
+      } else {
+        const isAbort = lastErr instanceof Error && lastErr.name === 'AbortError'
+        setCepError(`${isAbort ? 'Tempo de resposta excedido' : 'Serviço de CEP indisponível'}. Preencha o endereço manualmente — o imóvel será salvo normalmente.`)
+        console.warn('[CEP] Todos os provedores falharam:', lastErr)
+      }
+    } catch (fatal) {
+      // Rede de segurança final: nunca deixa a exceção derrubar o formulário
+      console.error('[CEP] Erro inesperado:', fatal)
+      if (mountedRef.current) {
         setCepLoading(false)
-
-        // Foca no campo Número após auto-preenchimento para agilizar o fluxo
-        setTimeout(() => {
-          const numberInput = document.getElementById('addressNumber')
-          if (numberInput) (numberInput as HTMLInputElement).focus()
-        }, 150)
-
-        return // sucesso — sai do loop de retries
-
-      } catch (err: unknown) {
-        const isAbort  = err instanceof Error && err.name === 'AbortError'
-        const isLast   = attempt === MAX_RETRIES
-
-        if (isLast) {
-          // Esgotou todas as tentativas — modo de fallback gracioso
-          const reason = isAbort
-            ? 'Tempo de resposta excedido (5s)'
-            : 'Serviço indisponível no momento'
-
-          setCepError(
-            `${reason}. Preencha o endereço manualmente — o imóvel será salvo normalmente.`
-          )
-          setCepSuccess(false)
-          setCepLoading(false)
-          console.warn(`[CEP] Falhou após ${MAX_RETRIES} tentativas para CEP ${cleanCep}:`, err)
-          return
-        }
-
-        // Exponential backoff antes de retry: 500ms, 1000ms, 2000ms
-        const backoffMs = 500 * Math.pow(2, attempt - 1)
-        console.warn(`[CEP] Tentativa ${attempt} falhou. Retry em ${backoffMs}ms...`)
-        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        setCepSuccess(false)
+        setCepError('Não foi possível buscar o CEP. Preencha o endereço manualmente.')
       }
     }
   }
 
   // Formata CEP enquanto digita (XXXXX-XXX) e dispara lookup automático
   const handleCepChange = (value: string) => {
-    const cleanValue = value.replace(/\D/g, '').slice(0, 8)
+    const cleanValue = String(value || '').replace(/\D/g, '').slice(0, 8)
     const formattedValue = cleanValue.length > 5
       ? `${cleanValue.slice(0, 5)}-${cleanValue.slice(5)}`
       : cleanValue
     setZipCode(formattedValue)
     setCepError('')
     setCepSuccess(false)
-    // Auto-lookup ao completar 8 dígitos
     if (cleanValue.length === 8) {
-      lookupCEP(cleanValue)
+      if (cleanValue !== lastLookedUpCepRef.current) void lookupCEP(cleanValue)
+    } else {
+      lastLookedUpCepRef.current = ''
+      cepRequestIdRef.current++ // cancela busca em andamento
+      setCepLoading(false)
     }
   }
 
@@ -259,10 +404,9 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     const files = Array.from(e.target.files)
     e.target.value = '' // permite selecionar o mesmo arquivo novamente
 
-    let watermarkTextFinal: string | null = null
-    if (watermarkEnabled && watermarkText) {
-      watermarkTextFinal = watermarkText
-    }
+    // Logo tem prioridade; texto só é usado se não houver logo
+    const wmLogo = watermarkEnabled ? watermarkLogo : null
+    const watermarkTextFinal: string | null = watermarkEnabled && !wmLogo ? watermarkText : null
     setUploadingFiles(true)
     const supabase = createClient()
     const newPhotos = [...photos]
@@ -270,7 +414,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
 
     for (const file of files) {
       try {
-        const images = await processUploadFile(file, { watermarkText: watermarkTextFinal })
+        const images = await processUploadFile(file, { watermark: wmLogo, watermarkText: watermarkTextFinal })
         for (const img of images) {
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${img.ext}`
           const filePath = `imoveis/${fileName}`
@@ -405,6 +549,8 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     try {
       const res = await saveProperty(payload, isEdit, initialData?.id)
       if (res.success) {
+        clearDraft()
+        draftReadyRef.current = false
         router.push('/painel/imoveis')
       } else {
         alert('Erro ao salvar o imóvel: ' + res.error)
@@ -455,7 +601,26 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
           <button className={`${styles.navItem} ${activeTab === 'media' ? styles.active : ''}`} onClick={() => setActiveTab('media')} type="button">Fotos (Upload Real)</button>
         </aside>
 
-        <form id="propertyForm" className={styles.formContent} onSubmit={handleSave}>
+        <form
+          id="propertyForm"
+          className={styles.formContent}
+          onSubmit={handleSave}
+          translate="no"
+          onKeyDown={(e) => {
+            // Enter em inputs NUNCA submete o formulário (evita envio acidental)
+            const t = e.target as HTMLElement
+            if (e.key === 'Enter' && t.tagName === 'INPUT') e.preventDefault()
+          }}
+        >
+          {draftRestored && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e3a8a', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>
+              <span>💾 Rascunho restaurado automaticamente — seus dados não foram perdidos.</span>
+              <span style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setDraftRestored(false)} style={{ background: 'transparent', border: '1px solid #93c5fd', color: '#1e3a8a', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>OK</button>
+                <button type="button" onClick={discardDraft} style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>Descartar</button>
+              </span>
+            </div>
+          )}
           {activeTab === 'basic' && (
             <div className={styles.tabContent}>
               <h2>Informações Principais</h2>
@@ -527,11 +692,19 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                         maxLength={9}
                         style={{ flex: 1, borderColor: addressErrors.zipCode ? '#ef4444' : undefined }}
                         onFocus={() => setAddressErrors(prev => { const n = {...prev}; delete n.zipCode; return n })}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void lookupCEP(zipCode, { force: true }) } }}
+                        inputMode="numeric"
+                        autoComplete="postal-code"
+                        id="zipCode"
                       />
-                      <button type="button" onClick={() => lookupCEP(zipCode)} disabled={cepLoading || zipCode.replace(/\D/g, '').length !== 8}
+                      <button type="button" id="cepSearchBtn" onClick={() => void lookupCEP(zipCode, { force: true })} disabled={cepLoading || zipCode.replace(/\D/g, '').length !== 8}
                         style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', padding: '0 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', opacity: (cepLoading || zipCode.replace(/\D/g, '').length !== 8) ? 0.5 : 1, transition: '0.2s' }}>
-                        {cepLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={14} />}
-                        {cepLoading ? 'Buscando...' : 'Buscar'}
+                        {/* Nós estáveis: evita crash do React quando tradutores/extensões alteram o DOM */}
+                        <span key="cep-icon" style={{ display: 'inline-flex' }}>
+                          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', display: cepLoading ? 'inline' : 'none' }} />
+                          <Search size={14} style={{ display: cepLoading ? 'none' : 'inline' }} />
+                        </span>
+                        <span key="cep-label">{cepLoading ? 'Buscando...' : 'Buscar'}</span>
                       </button>
                     </div>
                     {addressErrors.zipCode && <small style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>✗ {addressErrors.zipCode}</small>}
@@ -835,15 +1008,23 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.9rem 1.1rem', borderRadius: '10px', marginBottom: '1rem', border: '1px solid', borderColor: watermarkStatus === 'ready' && watermarkEnabled ? '#a7f3d0' : watermarkStatus === 'missing' ? '#fca5a5' : '#fde68a', background: watermarkStatus === 'ready' && watermarkEnabled ? '#ecfdf5' : watermarkStatus === 'missing' ? '#fef2f2' : '#fffbeb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>🛡️ Proteção com marca d&apos;água dourada</strong>
+                    <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>🛡️ Proteção com marca d&apos;água {watermarkLogo ? '(logo da imobiliária)' : 'dourada'}</strong>
                     <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                      {watermarkStatus === 'loading' && 'Carregando nome da imobiliária...'}
+                      {watermarkStatus === 'loading' && 'Carregando logo da imobiliária...'}
                       {watermarkStatus === 'ready' && (watermarkEnabled
-                        ? `"​${watermarkText}​" será gravado em dourado no centro de CADA NOVA foto enviada.`
+                        ? (watermarkLogo
+                            ? 'A logo (sem fundo, translúcida) será gravada no centro de CADA NOVA foto enviada.'
+                            : `Sem logo cadastrada — "​${watermarkText}​" será gravado em dourado. Cadastre a logo em Configurações para usá-la.`)
                         : 'Desativada — as próximas fotos serão enviadas SEM proteção.')}
-                      {watermarkStatus === 'missing' && 'Configure o nome real da imobiliária em Configurações → Minha Imobiliária (não use o padrão).'}
+                      {watermarkStatus === 'missing' && 'Cadastre a logo (ou o nome real) da imobiliária em Configurações → Minha Imobiliária.'}
                     </span>
                   </div>
+                  {watermarkPreview && (
+                    <div title="Prévia da logo usada como marca d'água" style={{ height: 48, padding: '4px 10px', borderRadius: 8, background: 'repeating-conic-gradient(#cbd5e1 0% 25%, #f1f5f9 0% 50%) 50% / 14px 14px', display: 'flex', alignItems: 'center' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={watermarkPreview} alt="Logo marca d'água" style={{ maxHeight: 40, maxWidth: 160, objectFit: 'contain' }} />
+                    </div>
+                  )}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, cursor: watermarkStatus === 'ready' ? 'pointer' : 'not-allowed', opacity: watermarkStatus === 'ready' ? 1 : 0.5, whiteSpace: 'nowrap' }}>
                     <input id="watermarkToggle" type="checkbox" checked={watermarkEnabled && watermarkStatus === 'ready'} disabled={watermarkStatus !== 'ready'} onChange={e => setWatermarkEnabled(e.target.checked)} />
                     Ativar marca d&apos;água
