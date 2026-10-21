@@ -107,24 +107,134 @@ function buildTextSvg(text: string, W: number, H: number): Buffer {
   return Buffer.from(svg)
 }
 
-/** Aplica marca d'água em texto dourado (sem fundo). */
-async function watermark(photo: Buffer, companyName: string): Promise<Buffer> {
-  // sharp(Buffer) sem opções extras — deixa o sharp detectar o formato automaticamente
+/**
+ * Remove o fundo branco/sólido da logo e apara margens vazias.
+ * Usa o mesmo algoritmo de detecção de bordas e flood-fill para preservar
+ * partes brancas internas da marca e remover apenas o fundo externo.
+ */
+async function prepareLogo(logoRaw: Buffer): Promise<Buffer> {
+  const img = sharp(logoRaw).ensureAlpha()
+  const meta = await img.metadata()
+  const w = meta.width || 800
+  const h = meta.height || 400
+  const { data } = await img.raw().toBuffer({ resolveWithObject: true })
+  const d = Buffer.from(data)
+
+  // 1. Amostra bordas para identificar fundo opaco
+  let total = 0, opaque = 0, sr = 0, sg = 0, sb = 0
+  const sample = (x: number, y: number) => {
+    const i = (y * w + x) * 4
+    total++
+    if (d[i + 3] > 200) { opaque++; sr += d[i]; sg += d[i + 1]; sb += d[i + 2] }
+  }
+  for (let x = 0; x < w; x++) { sample(x, 0); sample(x, h - 1) }
+  for (let y = 1; y < h - 1; y++) { sample(0, y); sample(w - 1, y) }
+
+  // Se metade ou mais da borda for opaca, assume que há fundo a ser removido
+  if (opaque / total >= 0.5) {
+    const bgR = sr / opaque, bgG = sg / opaque, bgB = sb / opaque
+    const tolerance = 42
+    const dist = (i: number) =>
+      Math.max(Math.abs(d[i] - bgR), Math.abs(d[i + 1] - bgG), Math.abs(d[i + 2] - bgB))
+
+    const removed = new Uint8Array(w * h)
+    const queue = new Int32Array(w * h)
+    let head = 0, tail = 0
+    const push = (p: number) => {
+      if (removed[p]) return
+      const i = p * 4
+      if (d[i + 3] === 0 || dist(i) <= tolerance) { removed[p] = 1; queue[tail++] = p }
+    }
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x) }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1) }
+    while (head < tail) {
+      const p = queue[head++]
+      const x = p % w, y = (p / w) | 0
+      if (x > 0) push(p - 1)
+      if (x < w - 1) push(p + 1)
+      if (y > 0) push(p - w)
+      if (y < h - 1) push(p + w)
+    }
+    for (let p = 0; p < w * h; p++) if (removed[p]) d[p * 4 + 3] = 0
+
+    // Descontaminação de halo nas bordas
+    const haloRange = tolerance * 3
+    for (let pass = 0; pass < 2; pass++) {
+      const edge: number[] = []
+      for (let p = 0; p < w * h; p++) {
+        if (removed[p]) continue
+        const x = p % w, y = (p / w) | 0
+        if ((x > 0 && removed[p - 1]) || (x < w - 1 && removed[p + 1]) ||
+            (y > 0 && removed[p - w]) || (y < h - 1 && removed[p + w])) edge.push(p)
+      }
+      for (const p of edge) {
+        const i = p * 4
+        const dd = dist(i)
+        if (dd < haloRange) {
+          const a = Math.max(0.05, dd / haloRange)
+          d[i]     = Math.max(0, Math.min(255, Math.round((d[i]     - bgR * (1 - a)) / a)))
+          d[i + 1] = Math.max(0, Math.min(255, Math.round((d[i + 1] - bgG * (1 - a)) / a)))
+          d[i + 2] = Math.max(0, Math.min(255, Math.round((d[i + 2] - bgB * (1 - a)) / a)))
+          d[i + 3] = Math.round(d[i + 3] * a)
+        }
+        removed[p] = 2
+      }
+    }
+  }
+
+  // Gera imagem PNG e remove margens vazias
+  return sharp(d, { raw: { width: w, height: h, channels: 4 } })
+    .trim()
+    .png()
+    .toBuffer()
+}
+
+/** Aplica marca d'água na foto (prioriza logo limpa com 22% de opacidade; fallback para texto). */
+async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; companyName: string }): Promise<Buffer> {
   const resizedBuf = await sharp(photo)
-    .rotate()                          // corrige orientação EXIF
+    .rotate()
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
-    .flatten({ background: { r: 255, g: 255, b: 255 } })  // remove transparência
-    .toFormat('png')                   // força PNG sem compressão como intermediário
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .toFormat('png')
     .toBuffer()
 
-  // Obtém dimensões reais após o processamento
   const meta = await sharp(resizedBuf).metadata()
   const W = meta.width!
   const H = meta.height!
 
-  // Overlay SVG com o texto dourado
-  const overlay = buildTextSvg(companyName, W, H)
+  if (opts.logoBuffer) {
+    try {
+      const maxW = Math.round(W * 0.35)
+      const maxH = Math.round(H * 0.35)
+      const resizedLogo = await sharp(opts.logoBuffer)
+        .resize(maxW, maxH, { fit: 'inside' })
+        .toBuffer()
 
+      const lMeta = await sharp(resizedLogo).metadata()
+      const lw = lMeta.width!
+      const lh = lMeta.height!
+
+      // Aplica 22% de opacidade (0.22) no canal alpha
+      const rawLogo = await sharp(resizedLogo).ensureAlpha().raw().toBuffer()
+      for (let i = 3; i < rawLogo.length; i += 4) {
+        rawLogo[i] = Math.round(rawLogo[i] * 0.22)
+      }
+      const semiLogo = await sharp(rawLogo, { raw: { width: lw, height: lh, channels: 4 } }).png().toBuffer()
+
+      const left = Math.round((W - lw) / 2)
+      const top = Math.round((H - lh) / 2)
+
+      return sharp(resizedBuf)
+        .composite([{ input: semiLogo, top, left, blend: 'over' }])
+        .webp({ quality: 88 })
+        .toBuffer()
+    } catch (e) {
+      console.warn('   ⚠ Falha ao aplicar overlay da logo, usando texto como fallback:', e)
+    }
+  }
+
+  // Fallback: texto dourado elegante
+  const overlay = buildTextSvg(opts.companyName, W, H)
   return sharp(resizedBuf)
     .composite([{ input: overlay, top: 0, left: 0, blend: 'over' }])
     .webp({ quality: 88 })
@@ -143,9 +253,22 @@ async function main() {
   console.log(APPLY ? '🚀 MODO EXECUÇÃO (alterações serão gravadas)\n' : '🔎 MODO SIMULAÇÃO (use --apply para executar)\n')
 
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
-  const companyName = settings?.companyName?.trim()
-  if (!companyName) throw new Error('Nome da imobiliária não configurado. Preencha em Configurações → Minha Imobiliária.')
-  console.log(`🏢  Empresa: ${companyName}\n`)
+  const companyName = settings?.companyName?.trim() || 'Minha Imobiliária'
+  const logoUrl = settings?.logoUrl?.trim()
+
+  let preparedLogo: Buffer | null = null
+  if (logoUrl) {
+    try {
+      console.log(`📥 Baixando logo de: ${logoUrl}`)
+      const raw = await download(logoUrl)
+      preparedLogo = await prepareLogo(raw)
+      console.log('✨ Logo processada com sucesso: fundo branco removido e margens recortadas.\n')
+    } catch (err) {
+      console.warn(`⚠ Não foi possível preparar a logo (${(err as Error).message}). Será usado texto dourado.\n`)
+    }
+  } else {
+    console.log(`🏢  Empresa: ${companyName} (sem logo cadastrada, usando texto dourado)\n`)
+  }
 
   if (APPLY) await ensureBackupBucket()
 
@@ -183,7 +306,7 @@ async function main() {
         if (bErr) throw new Error(`backup: ${bErr.message}`)
 
         // 2) Gera e envia versão protegida
-        const protectedImg = await watermark(original, companyName)
+        const protectedImg = await watermark(original, { logoBuffer: preparedLogo, companyName })
         const newPath = `imoveis/${WM_PREFIX}${Math.random().toString(36).slice(2, 12)}_${Date.now()}.webp`
         const { error: uErr } = await supabase.storage.from(PUBLIC_BUCKET)
           .upload(newPath, protectedImg, { contentType: 'image/webp', cacheControl: '31536000' })

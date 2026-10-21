@@ -153,49 +153,53 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     photos, tourLink, videoLink, financeable, description: descriptionRef.current,
   })
 
-  // Restaura rascunho uma única vez, após montar (evita mismatch de hidratação)
+  // Restaura rascunho uma única vez, após montar (evita mismatch de hidratação e cascading render síncrono)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY)
-      if (raw) {
-        const d = JSON.parse(raw)
-        if (d && d.v === 1) {
-          const s = (v: unknown, fb: string) => (typeof v === 'string' ? v : fb)
-          const a = (v: unknown, fb: string[]) => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : fb)
-          setTitle(s(d.title, title)); setCode(s(d.code, code))
-          setTransactionType(s(d.transactionType, transactionType))
-          if (['AVAILABLE','SOLD','RENTED'].includes(d.status)) setStatus(d.status)
-          if (['RESIDENTIAL','COMMERCIAL','RURAL'].includes(d.selectedCategory)) setSelectedCategory(d.selectedCategory)
-          setSelectedType(s(d.selectedType, selectedType))
-          setZipCode(s(d.zipCode, zipCode)); setStreet(s(d.street, street))
-          setAddressNumber(s(d.addressNumber, addressNumber)); setComplement(s(d.complement, complement))
-          setNeighborhood(s(d.neighborhood, neighborhood)); setCity(s(d.city, city))
-          setAddressState(s(d.addressState, addressState))
-          setPrice(s(d.price, price)); setRentPrice(s(d.rentPrice, rentPrice))
-          setCondoPrice(s(d.condoPrice, condoPrice)); setIptuPrice(s(d.iptuPrice, iptuPrice))
-          setFeatured(!!d.featured); setFinanceable(!!d.financeable)
-          setLatitude(s(d.latitude, latitude)); setLongitude(s(d.longitude, longitude))
-          setAreaTotal(s(d.areaTotal, areaTotal)); setAreaUseful(s(d.areaUseful, areaUseful))
-          setBedrooms(s(d.bedrooms, bedrooms)); setSuites(s(d.suites, suites))
-          setBathrooms(s(d.bathrooms, bathrooms)); setParkingSpaces(s(d.parkingSpaces, parkingSpaces))
-          setFeatures(a(d.features, features)); setLeisure(a(d.leisure, leisure))
-          setSecurity(a(d.security, security)); setFurniture(a(d.furniture, furniture))
-          setEnvironments(a(d.environments, environments)); setInfrastructure(a(d.infrastructure, infrastructure))
-          setPhotos(a(d.photos, photos))
-          setTourLink(s(d.tourLink, tourLink)); setVideoLink(s(d.videoLink, videoLink))
-          if (typeof d.description === 'string') {
-            descriptionRef.current = d.description
-            const el = document.getElementById('richTextDescription')
-            if (el) el.innerHTML = d.description
+    const timer = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY)
+        if (raw) {
+          const d = JSON.parse(raw)
+          if (d && d.v === 1) {
+            const s = (v: unknown, fb: string) => (typeof v === 'string' ? v : fb)
+            const a = (v: unknown, fb: string[]) => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : fb)
+            setTitle(s(d.title, title)); setCode(s(d.code, code))
+            setTransactionType(s(d.transactionType, transactionType))
+            if (['AVAILABLE','SOLD','RENTED'].includes(d.status)) setStatus(d.status)
+            if (['RESIDENTIAL','COMMERCIAL','RURAL'].includes(d.selectedCategory)) setSelectedCategory(d.selectedCategory)
+            setSelectedType(s(d.selectedType, selectedType))
+            setZipCode(s(d.zipCode, zipCode)); setStreet(s(d.street, street))
+            setAddressNumber(s(d.addressNumber, addressNumber)); setComplement(s(d.complement, complement))
+            setNeighborhood(s(d.neighborhood, neighborhood)); setCity(s(d.city, city))
+            setAddressState(s(d.addressState, addressState))
+            setPrice(s(d.price, price)); setRentPrice(s(d.rentPrice, rentPrice))
+            setCondoPrice(s(d.condoPrice, condoPrice)); setIptuPrice(s(d.iptuPrice, iptuPrice))
+            setFeatured(!!d.featured); setFinanceable(!!d.financeable)
+            setLatitude(s(d.latitude, latitude)); setLongitude(s(d.longitude, longitude))
+            setAreaTotal(s(d.areaTotal, areaTotal)); setAreaUseful(s(d.areaUseful, areaUseful))
+            setBedrooms(s(d.bedrooms, bedrooms)); setSuites(s(d.suites, suites))
+            setBathrooms(s(d.bathrooms, bathrooms)); setParkingSpaces(s(d.parkingSpaces, parkingSpaces))
+            setFeatures(a(d.features, features)); setLeisure(a(d.leisure, leisure))
+            setSecurity(a(d.security, security)); setFurniture(a(d.furniture, furniture))
+            setEnvironments(a(d.environments, environments)); setInfrastructure(a(d.infrastructure, infrastructure))
+            setPhotos(a(d.photos, photos))
+            setTourLink(s(d.tourLink, tourLink)); setVideoLink(s(d.videoLink, videoLink))
+            if (typeof d.description === 'string') {
+              descriptionRef.current = d.description
+              const el = document.getElementById('richTextDescription')
+              if (el) el.innerHTML = d.description
+            }
+            setDraftRestored(true)
           }
-          setDraftRestored(true)
         }
+      } catch (err) {
+        console.warn('[Draft] Falha ao restaurar rascunho:', err)
+      } finally {
+        draftReadyRef.current = true
       }
-    } catch (err) {
-      console.warn('[Draft] Falha ao restaurar rascunho:', err)
-    } finally {
-      draftReadyRef.current = true
-    }
+    }, 0)
+
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -255,7 +259,9 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   const mountedRef = useRef(true)
   useEffect(() => {
     mountedRef.current = true
-    return () => { mountedRef.current = false; cepRequestIdRef.current++ }
+    return () => {
+      mountedRef.current = false
+    }
   }, [])
 
   type CepResult = { street?: string; neighborhood?: string; city?: string; state?: string } | 'NOT_FOUND'
