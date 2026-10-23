@@ -29,9 +29,9 @@ interface FilterModalProps {
 }
 
 const PROPERTY_CATEGORIES = {
-  'Residencial': ['Apartamento', 'Casa', 'Cobertura', 'Casa de Condomínio', 'Sobrado', 'Kitnet / Studio / Flat'],
+  'Residencial': ['Apartamento', 'Casa', 'Cobertura', 'Casa de Condomínio', 'Sobrado', 'Kitnet / Studio / Flat', 'Terreno'],
   'Comercial': ['Sala Comercial', 'Loja', 'Galpão', 'Prédio Comercial', 'Terreno Comercial'],
-  'Rural': ['Sítio / Chácara', 'Fazenda', 'Haras', 'Terreno Rural']
+  'Rural': ['Sítio', 'Chácara', 'Fazenda', 'Haras', 'Terreno Rural']
 }
 
 const FEATURES = [

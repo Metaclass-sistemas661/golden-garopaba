@@ -52,7 +52,10 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
         if (loc) newFilters.searchTerm = loc; 
         if (type) newFilters.propertyTypes = [type];
         if (price) {
-          if (price === '0-5') { newFilters.maxPrice = 5000000; }
+          if (price === '0-500k') { newFilters.maxPrice = 500000; }
+          else if (price === '0-1m') { newFilters.maxPrice = 1000000; }
+          else if (price === '0-2m') { newFilters.maxPrice = 2000000; }
+          else if (price === '0-5') { newFilters.maxPrice = 5000000; }
           else if (price === '5-10') { newFilters.minPrice = 5000000; newFilters.maxPrice = 10000000; }
           else if (price === '10-20') { newFilters.minPrice = 10000000; newFilters.maxPrice = 20000000; }
           else if (price === '20+') { newFilters.minPrice = 20000000; }
@@ -81,6 +84,14 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
   // Estado para paginação
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8 // 4 per row, so 2 rows
+
+  // Função auxiliar para mudar de página com scroll para o topo
+  const handlePageChange = (page: number | ((prev: number) => number)) => {
+    const newPage = typeof page === 'function' ? page(currentPage) : page
+    setCurrentPage(newPage)
+    // Scroll suave para o topo da página
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Lógica de Filtragem
   const filteredProperties = useMemo(() => {
@@ -359,7 +370,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
             <div className={styles.pagination}>
               <button 
                 className={styles.pageBtn} 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => handlePageChange(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
               >
                 <ChevronLeft size={20} />
@@ -370,7 +381,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                   <button 
                     key={i}
                     className={`${styles.pageNumberBtn} ${currentPage === i + 1 ? styles.activePage : ''}`}
-                    onClick={() => setCurrentPage(i + 1)}
+                    onClick={() => handlePageChange(i + 1)}
                   >
                     {i + 1}
                   </button>
@@ -379,7 +390,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
 
               <button 
                 className={styles.pageBtn} 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() => handlePageChange(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
               >
                 <ChevronRight size={20} />

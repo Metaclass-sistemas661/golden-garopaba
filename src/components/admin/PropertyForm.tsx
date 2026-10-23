@@ -18,9 +18,9 @@ interface PropertyFormProps {
 }
 
 const PROPERTY_CATEGORIES = {
-  'RESIDENTIAL': ['Apartamento', 'Casa', 'Cobertura', 'Casa de Condomínio', 'Sobrado', 'Kitnet / Studio / Flat'],
+  'RESIDENTIAL': ['Apartamento', 'Casa', 'Cobertura', 'Casa de Condomínio', 'Sobrado', 'Kitnet / Studio / Flat', 'Terreno'],
   'COMMERCIAL': ['Sala Comercial', 'Loja', 'Galpão', 'Prédio Comercial', 'Terreno Comercial'],
-  'RURAL': ['Sítio / Chácara', 'Fazenda', 'Haras', 'Terreno Rural']
+  'RURAL': ['Sítio', 'Chácara', 'Fazenda', 'Haras', 'Terreno Rural']
 }
 
 const FEATURES = [ 'Condomínio fechado', 'De frente para o mar', 'Mobiliado', 'Semimobiliado', 'Novo', 'Usado', 'Aceita permuta', 'Financiável', 'Elevador' ]

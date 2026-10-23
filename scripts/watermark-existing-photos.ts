@@ -50,25 +50,26 @@ async function download(url: string): Promise<Buffer> {
 /**
  * Gera o overlay SVG com o nome da imobiliária em texto dourado semitransparente.
  * Sharp suporta SVG nativamente via librsvg — sem dependências extras.
- * O texto é renderizado com filtros de sombra e brilho dourado.
+ * O texto é renderizado com filtros de sombra e brilho dourado de forma discreta.
  */
 function buildTextSvg(text: string, W: number, H: number): Buffer {
-  const fontSize = Math.max(20, Math.min(120, Math.round(W * 0.04)))
+  // Tamanho menor e mais discreto: 3% da largura (era 4%)
+  const fontSize = Math.max(16, Math.min(70, Math.round(W * 0.025)))
   // Estimativa conservadora da largura do texto (será centralizado pelo SVG)
   const svgW = W
   const svgH = H
   const cx = W / 2
   const cy = H / 2 + fontSize * 0.35
-  const blur = Math.max(3, Math.round(fontSize * 0.08))
+  const blur = Math.max(2, Math.round(fontSize * 0.06))
   const label = text.toUpperCase().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="0" stdDeviation="${blur * 1.5}" flood-color="rgba(0,0,0,0.9)" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="${blur}" flood-color="rgba(0,0,0,0.7)" flood-opacity="0.35"/>
     </filter>
     <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="0" stdDeviation="${blur}" flood-color="#E8D5A3" flood-opacity="0.4"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="${blur * 0.5}" flood-color="#E8D5A3" flood-opacity="0.25"/>
     </filter>
   </defs>
   <!-- Sombra escura: visível em fotos claras -->
@@ -82,7 +83,7 @@ function buildTextSvg(text: string, W: number, H: number): Buffer {
     filter="url(#shadow)"
     opacity="1"
   >${label}</text>
-  <!-- Texto dourado principal -->
+  <!-- Texto dourado principal com opacidade reduzida -->
   <text
     x="${cx}" y="${cy}"
     text-anchor="middle"
@@ -90,9 +91,9 @@ function buildTextSvg(text: string, W: number, H: number): Buffer {
     font-size="${fontSize}"
     font-weight="bold"
     fill="#C5A55A"
-    opacity="0.52"
+    opacity="0.38"
   >${label}</text>
-  <!-- Brilho dourado claro (efeito metálico) -->
+  <!-- Brilho dourado claro (efeito metálico) - mais discreto -->
   <text
     x="${cx}" y="${cy}"
     text-anchor="middle"
@@ -101,7 +102,7 @@ function buildTextSvg(text: string, W: number, H: number): Buffer {
     font-weight="bold"
     fill="#E8D5A3"
     filter="url(#glow)"
-    opacity="0.28"
+    opacity="0.18"
   >${label}</text>
 </svg>`
   return Buffer.from(svg)
@@ -204,8 +205,9 @@ async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; comp
 
   if (opts.logoBuffer) {
     try {
-      const maxW = Math.round(W * 0.35)
-      const maxH = Math.round(H * 0.35)
+      // Tamanho discreto: 18% da largura/altura (mais profissional)
+      const maxW = Math.round(W * 0.18)
+      const maxH = Math.round(H * 0.18)
       const resizedLogo = await sharp(opts.logoBuffer)
         .resize(maxW, maxH, { fit: 'inside' })
         .toBuffer()
@@ -214,10 +216,10 @@ async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; comp
       const lw = lMeta.width!
       const lh = lMeta.height!
 
-      // Aplica 48% de opacidade (0.48) no canal alpha — mais escura e nítida
+      // Aplica 22% de opacidade (0.22) no canal alpha — discreta mas visível
       const rawLogo = await sharp(resizedLogo).ensureAlpha().raw().toBuffer()
       for (let i = 3; i < rawLogo.length; i += 4) {
-        rawLogo[i] = Math.round(rawLogo[i] * 0.48)
+        rawLogo[i] = Math.round(rawLogo[i] * 0.22)
       }
       const semiLogo = await sharp(rawLogo, { raw: { width: lw, height: lh, channels: 4 } }).png().toBuffer()
 

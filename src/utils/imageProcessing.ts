@@ -237,7 +237,8 @@ export function loadWatermark(url: string): Promise<Watermark> {
 /**
  * Aplica a marca d'água no centro do canvas.
  * Prioridade: logo (loadWatermark) > texto (watermarkText).
- * Opacidade baixa (22%): discreta e elegante, não prejudica a foto.
+ * Marca d'água discreta e profissional: tamanho reduzido (18% da largura) 
+ * com opacidade baixa (22%) para não competir com o imóvel.
  */
 async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   const ctx = canvas.getContext('2d')!
@@ -247,17 +248,17 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   // ── Modo 1: Logo da imobiliária (sem fundo branco) ──
   const wm = opts.watermark
   if (wm && wm.width && wm.height) {
-    // Ocupa até 35% da largura, limitada a 35% da altura
-    let w = W * 0.35
+    // Tamanho discreto: 18% da largura, limitada a 18% da altura
+    let w = W * 0.18
     let h = w * (wm.height / wm.width)
-    if (h > H * 0.35) { h = H * 0.35; w = h * (wm.width / wm.height) }
+    if (h > H * 0.18) { h = H * 0.18; w = h * (wm.width / wm.height) }
     const x = (W - w) / 2
     const y = (H - h) / 2
 
     ctx.save()
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalAlpha = 0.48   // Mais nítida e visível, com cores mais escuras e definidas
+    ctx.globalAlpha = 0.22   // Opacidade baixa: discreta mas visível
     ctx.drawImage(wm.image, x, y, w, h)
     ctx.restore()
     return
@@ -267,30 +268,30 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   const text = opts.watermarkText
   if (!text) return
 
-  const fontSize = Math.max(24, Math.min(140, Math.round(W * 0.05)))
+  const fontSize = Math.max(18, Math.min(80, Math.round(W * 0.03)))
   const fontStr = `bold ${fontSize}px "Playfair Display", Georgia, serif`
   const label = text.toUpperCase()
-  const blur = Math.max(4, Math.round(fontSize * 0.10))
+  const blur = Math.max(2, Math.round(fontSize * 0.08))
 
   ctx.save()
   ctx.font = fontStr
   ctx.textBaseline = 'middle'
   ctx.textAlign = 'center'
 
-  // Passada 1: sombra escura
-  ctx.globalAlpha = 0.55
-  ctx.shadowColor = 'rgba(0,0,0,1)'
-  ctx.shadowBlur = blur * 4
+  // Passada 1: sombra escura suave
+  ctx.globalAlpha = 0.35
+  ctx.shadowColor = 'rgba(0,0,0,0.8)'
+  ctx.shadowBlur = blur * 2
   ctx.fillStyle = 'rgba(0,0,0,0.001)'
   ctx.strokeStyle = 'rgba(0,0,0,0.001)'
-  ctx.lineWidth = fontSize * 0.08
+  ctx.lineWidth = fontSize * 0.06
   ctx.strokeText(label, W / 2, H / 2)
   ctx.fillText(label, W / 2, H / 2)
 
-  // Passada 2: texto dourado principal
+  // Passada 2: texto dourado principal com opacidade reduzida
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 0.65
+  ctx.globalAlpha = 0.45
   ctx.fillStyle = '#C5A55A'
   ctx.fillText(label, W / 2, H / 2)
 

@@ -323,6 +323,8 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                   { value: 'Casa de Condomínio', label: 'Casa de Condomínio' },
                   { value: 'Apartamento', label: 'Apartamento' },
                   { value: 'Cobertura', label: 'Cobertura' },
+                  { value: 'Terreno', label: 'Terreno' },
+                  { value: 'Sítio', label: 'Sítio' },
                 ]}
               />
             </div>
@@ -336,6 +338,9 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                 onChange={setPriceRange}
                 options={[
                   { value: '', label: 'Qualquer' },
+                  { value: '0-500k', label: 'Até R$ 500 mil' },
+                  { value: '0-1m', label: 'Até R$ 1 milhão' },
+                  { value: '0-2m', label: 'Até R$ 2 milhões' },
                   { value: '0-5', label: 'Até R$ 5M' },
                   { value: '5-10', label: 'R$ 5M - R$ 10M' },
                   { value: '10-20', label: 'R$ 10M - R$ 20M' },
@@ -359,7 +364,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <span className={styles.globalSubtitle}>DEDICAÇÃO & CONHECIMENTO LOCAL</span>
             <h2 className={styles.globalTitle}>A facilidade de encontrar o imóvel ideal com quem respira Garopaba...</h2>
             <p className={styles.globalDescription}>
-              Nascemos com um propósito claro: conectar você ao seu imóvel ideal em Santa Catarina. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba seja transparente, segura e eficiente do início ao fim.
+              Nascemos com um propósito claro: conectar você ao seu imóvel ideal em Santa Catarina. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba e região seja transparente, segura e eficiente do início ao fim.
             </p>
             
             <a href="#" className={styles.globalLink}>
