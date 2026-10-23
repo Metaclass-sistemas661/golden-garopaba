@@ -35,7 +35,7 @@ export default function Footer() {
           
           <div className={styles.footerBrand} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <Link href="/" className={styles.footerLogo}>
-              <Image src="/logo1.png" alt="Golden Garopaba" width={150} height={150} style={{ objectFit: 'contain' }} />
+              <Image src="/logo00.png" alt="Golden Garopaba" width={150} height={150} style={{ objectFit: 'contain' }} />
             </Link>
             <p>Conectando pessoas aos melhores imóveis em Garopaba. Inteligência de mercado e atendimento dedicado para a sua segurança.</p>
           </div>

@@ -108,17 +108,30 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
         const isDefaultName = name === '' || name.toLowerCase() === 'minha imobiliária'
         if (!isDefaultName) setWatermarkText(name)
 
-        const logoUrl = s?.logoUrl?.trim()
-        if (logoUrl) {
-          try {
-            const wm = await prepareWatermark(logoUrl)
-            if (cancelled) return
-            setWatermarkLogo(wm)
-            setWatermarkPreview(wm.image.toDataURL('image/png'))
-            setWatermarkStatus('ready')
-            return
-          } catch (err) {
-            console.warn('[Watermark] Falha ao carregar logo, usando texto:', err)
+        // Prioridade: /nova-logo.png (marca d'água dedicada) > logoUrl do banco
+        const watermarkLogoUrl = '/nova-logo.png'
+        try {
+          const wm = await prepareWatermark(watermarkLogoUrl)
+          if (cancelled) return
+          setWatermarkLogo(wm)
+          setWatermarkPreview(wm.image.toDataURL('image/png'))
+          setWatermarkStatus('ready')
+          return
+        } catch (err) {
+          console.warn('[Watermark] Falha ao carregar nova-logo.png, tentando logo do banco:', err)
+          // Fallback: tenta logo do banco de dados
+          const logoUrl = s?.logoUrl?.trim()
+          if (logoUrl) {
+            try {
+              const wm = await prepareWatermark(logoUrl)
+              if (cancelled) return
+              setWatermarkLogo(wm)
+              setWatermarkPreview(wm.image.toDataURL('image/png'))
+              setWatermarkStatus('ready')
+              return
+            } catch (err2) {
+              console.warn('[Watermark] Falha ao carregar logo do banco, usando texto:', err2)
+            }
           }
         }
         if (!cancelled) setWatermarkStatus(isDefaultName ? 'missing' : 'ready')

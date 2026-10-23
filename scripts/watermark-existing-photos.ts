@@ -205,9 +205,9 @@ async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; comp
 
   if (opts.logoBuffer) {
     try {
-      // Tamanho discreto: 18% da largura/altura (mais profissional)
-      const maxW = Math.round(W * 0.18)
-      const maxH = Math.round(H * 0.18)
+      // Tamanho discreto: 15% da largura/altura (mais profissional)
+      const maxW = Math.round(W * 0.15)
+      const maxH = Math.round(H * 0.15)
       const resizedLogo = await sharp(opts.logoBuffer)
         .resize(maxW, maxH, { fit: 'inside' })
         .toBuffer()
@@ -216,10 +216,10 @@ async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; comp
       const lw = lMeta.width!
       const lh = lMeta.height!
 
-      // Aplica 22% de opacidade (0.22) no canal alpha — discreta mas visível
+      // Aplica 18% de opacidade (0.18) no canal alpha — muito discreta mas visível
       const rawLogo = await sharp(resizedLogo).ensureAlpha().raw().toBuffer()
       for (let i = 3; i < rawLogo.length; i += 4) {
-        rawLogo[i] = Math.round(rawLogo[i] * 0.22)
+        rawLogo[i] = Math.round(rawLogo[i] * 0.18)
       }
       const semiLogo = await sharp(rawLogo, { raw: { width: lw, height: lh, channels: 4 } }).png().toBuffer()
 
@@ -256,20 +256,33 @@ async function main() {
 
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
   const companyName = settings?.companyName?.trim() || 'Minha Imobiliária'
+  
+  // Prioridade: nova-logo.png local > logoUrl do banco de dados
+  const localWatermarkPath = './public/nova-logo.png'
   const logoUrl = settings?.logoUrl?.trim()
 
   let preparedLogo: Buffer | null = null
-  if (logoUrl) {
-    try {
-      console.log(`📥 Baixando logo de: ${logoUrl}`)
-      const raw = await download(logoUrl)
-      preparedLogo = await prepareLogo(raw)
-      console.log('✨ Logo processada com sucesso: fundo branco removido e margens recortadas.\n')
-    } catch (err) {
-      console.warn(`⚠ Não foi possível preparar a logo (${(err as Error).message}). Será usado texto dourado.\n`)
+  
+  // Tenta primeiro a nova-logo.png local (marca d'água dedicada)
+  try {
+    const fs = await import('fs/promises')
+    const localLogo = await fs.readFile(localWatermarkPath)
+    preparedLogo = await prepareLogo(localLogo)
+    console.log(`✨ Logo local (nova-logo.png) processada com sucesso: marca d'água dedicada.\n`)
+  } catch {
+    // Fallback: tenta logo do banco de dados
+    if (logoUrl) {
+      try {
+        console.log(`📥 Baixando logo de: ${logoUrl}`)
+        const raw = await download(logoUrl)
+        preparedLogo = await prepareLogo(raw)
+        console.log('✨ Logo processada com sucesso: fundo branco removido e margens recortadas.\n')
+      } catch (err) {
+        console.warn(`⚠ Não foi possível preparar a logo (${(err as Error).message}). Será usado texto dourado.\n`)
+      }
+    } else {
+      console.log(`🏢  Empresa: ${companyName} (sem logo cadastrada, usando texto dourado)\n`)
     }
-  } else {
-    console.log(`🏢  Empresa: ${companyName} (sem logo cadastrada, usando texto dourado)\n`)
   }
 
   if (APPLY) await ensureBackupBucket()

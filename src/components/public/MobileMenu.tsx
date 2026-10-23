@@ -37,7 +37,7 @@ export default function MobileMenu() {
       {isOpen && (
         <div className={styles.overlay}>
           <div className={styles.menuHeader}>
-            <Image src="/logo1.png" alt="Golden Garopaba" className={styles.menuLogo} width={150} height={50} />
+            <Image src="/logo00.png" alt="Golden Garopaba" className={styles.menuLogo} width={150} height={50} />
             <button 
               className={styles.closeBtn} 
               onClick={closeMenu}

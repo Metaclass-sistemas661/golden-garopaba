@@ -237,8 +237,8 @@ export function loadWatermark(url: string): Promise<Watermark> {
 /**
  * Aplica a marca d'água no centro do canvas.
  * Prioridade: logo (loadWatermark) > texto (watermarkText).
- * Marca d'água discreta e profissional: tamanho reduzido (18% da largura) 
- * com opacidade baixa (22%) para não competir com o imóvel.
+ * Marca d'água discreta e profissional: tamanho reduzido (15% da largura) 
+ * com opacidade baixa (18%) para não competir com o imóvel.
  */
 async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   const ctx = canvas.getContext('2d')!
@@ -248,17 +248,17 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   // ── Modo 1: Logo da imobiliária (sem fundo branco) ──
   const wm = opts.watermark
   if (wm && wm.width && wm.height) {
-    // Tamanho discreto: 18% da largura, limitada a 18% da altura
-    let w = W * 0.18
+    // Tamanho discreto: 15% da largura, limitada a 15% da altura
+    let w = W * 0.15
     let h = w * (wm.height / wm.width)
-    if (h > H * 0.18) { h = H * 0.18; w = h * (wm.width / wm.height) }
+    if (h > H * 0.15) { h = H * 0.15; w = h * (wm.width / wm.height) }
     const x = (W - w) / 2
     const y = (H - h) / 2
 
     ctx.save()
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalAlpha = 0.22   // Opacidade baixa: discreta mas visível
+    ctx.globalAlpha = 0.18   // Opacidade baixa: muito discreta mas visível
     ctx.drawImage(wm.image, x, y, w, h)
     ctx.restore()
     return
