@@ -13,7 +13,7 @@ export default async function Header() {
         {/* Left: Logo */}
         <div className={styles.logoContainer}>
           <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center' }}>
-            <Image src="/logo00.png" alt="Golden Garopaba" className={styles.logoImg} width={150} height={50} />
+            <Image src="/logo00.png" alt="Golden Garopaba" className={styles.logoImg} width={240} height={100} priority />
           </Link>
         </div>
         
