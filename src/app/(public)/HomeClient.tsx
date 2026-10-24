@@ -364,7 +364,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <span className={styles.globalSubtitle}>DEDICAÇÃO & CONHECIMENTO LOCAL</span>
             <h2 className={styles.globalTitle}>A facilidade de encontrar o imóvel ideal com quem respira Garopaba...</h2>
             <p className={styles.globalDescription}>
-              Nascemos com um propósito claro: conectar você ao seu imóvel ideal em Santa Catarina. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba e região seja transparente, segura e eficiente do início ao fim.
+              Nascemos com um propósito claro: conectar você ao seu imóvel ideal. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba e região seja transparente, segura e eficiente do início ao fim.
             </p>
             
             <a href="#" className={styles.globalLink}>
