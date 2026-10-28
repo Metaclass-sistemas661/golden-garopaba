@@ -13,6 +13,9 @@
  *   3. O banco é atualizado imóvel a imóvel (ordem das fotos preservada).
  *   4. Só depois o original é removido do bucket público (senão continuaria acessível pela URL antiga).
  *   Fotos com prefixo "wm_" são ignoradas — pode rodar várias vezes sem duplicar marca.
+ *
+ * ⚠️  NOTA: A flag --reprocess foi REMOVIDA devido a um bug grave que embaralhava fotos
+ *     entre imóveis diferentes. Use scripts/replace-photos.ts para substituir fotos.
  */
 import 'dotenv/config'
 import sharp from 'sharp'
@@ -45,6 +48,24 @@ async function download(url: string): Promise<Buffer> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`HTTP ${res.status} ao baixar ${url}`)
   return Buffer.from(await res.arrayBuffer())
+}
+
+/** Baixa arquivo do bucket de backup */
+async function downloadFromBackup(backupPath: string): Promise<Buffer> {
+  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).download(backupPath)
+  if (error || !data) throw new Error(`Erro ao baixar backup ${backupPath}: ${error?.message}`)
+  return Buffer.from(await data.arrayBuffer())
+}
+
+/** Lista arquivos no bucket de backup */
+async function listBackupFiles(): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).list('imoveis', { limit: 1000 })
+  if (error) throw new Error(`Erro ao listar backups: ${error.message}`)
+  for (const file of data || []) {
+    map.set(file.name.toLowerCase(), `imoveis/${file.name}`)
+  }
+  return map
 }
 
 /**
