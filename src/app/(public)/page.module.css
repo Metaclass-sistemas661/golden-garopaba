@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   padding-top: 160px; /* Espaço para o header fixo não sobrepor o conteúdo */
-  padding-bottom: 12vh; /* Empurra o texto um pouco mais pra cima pra ficar longe da barra de busca absoluta */
+  padding-bottom: 22vh; /* Espaço maior para não sobrepor a barra de busca */
 }
 
 .videoBackground {
