@@ -64,7 +64,7 @@ async function watermark(photo: Buffer, logo: Buffer | null): Promise<Buffer> {
 
   const rawLogo = await sharp(resizedLogo).raw().toBuffer()
   for (let i = 3; i < rawLogo.length; i += 4) {
-    rawLogo[i] = Math.round(rawLogo[i] * 0.50)
+    rawLogo[i] = Math.round(rawLogo[i] * 0.75)
   }
   const semiLogo = await sharp(rawLogo, { raw: { width: lw, height: lh, channels: 4 } }).png().toBuffer()
 
