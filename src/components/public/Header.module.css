@@ -1,5 +1,5 @@
 .header {
-  background: rgba(10, 10, 10, 0.75); /* Dark Glass para destacar o texto branco mesmo em seções claras */
+  background: rgba(30, 60, 114, 0.75); /* Azul transparente */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1); /* Borda bem sutil para manter o luxo */
