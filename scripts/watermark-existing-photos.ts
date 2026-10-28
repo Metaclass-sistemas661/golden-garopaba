@@ -237,10 +237,10 @@ async function watermark(photo: Buffer, opts: { logoBuffer?: Buffer | null; comp
       const lw = lMeta.width!
       const lh = lMeta.height!
 
-      // Aplica 35% de opacidade (0.35) no canal alpha — mais visível mas ainda elegante
+      // Aplica 50% de opacidade (0.50) no canal alpha — mais visível
       const rawLogo = await sharp(resizedLogo).ensureAlpha().raw().toBuffer()
       for (let i = 3; i < rawLogo.length; i += 4) {
-        rawLogo[i] = Math.round(rawLogo[i] * 0.35)
+        rawLogo[i] = Math.round(rawLogo[i] * 0.50)
       }
       const semiLogo = await sharp(rawLogo, { raw: { width: lw, height: lh, channels: 4 } }).png().toBuffer()
 

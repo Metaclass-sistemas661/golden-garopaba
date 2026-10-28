@@ -237,8 +237,8 @@ export function loadWatermark(url: string): Promise<Watermark> {
 /**
  * Aplica a marca d'água no centro do canvas.
  * Prioridade: logo (loadWatermark) > texto (watermarkText).
- * Marca d'água discreta e profissional: tamanho reduzido (15% da largura) 
- * com opacidade baixa (18%) para não competir com o imóvel.
+ * Marca d'água visível: tamanho reduzido (15% da largura) 
+ * com opacidade de 50% para boa visibilidade.
  */
 async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   const ctx = canvas.getContext('2d')!
@@ -258,7 +258,7 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
     ctx.save()
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalAlpha = 0.18   // Opacidade baixa: muito discreta mas visível
+    ctx.globalAlpha = 0.50   // Opacidade 50%: mais visível
     ctx.drawImage(wm.image, x, y, w, h)
     ctx.restore()
     return
@@ -279,7 +279,7 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   ctx.textAlign = 'center'
 
   // Passada 1: sombra escura suave
-  ctx.globalAlpha = 0.35
+  ctx.globalAlpha = 0.45
   ctx.shadowColor = 'rgba(0,0,0,0.8)'
   ctx.shadowBlur = blur * 2
   ctx.fillStyle = 'rgba(0,0,0,0.001)'
@@ -288,10 +288,10 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   ctx.strokeText(label, W / 2, H / 2)
   ctx.fillText(label, W / 2, H / 2)
 
-  // Passada 2: texto dourado principal com opacidade reduzida
+  // Passada 2: texto dourado principal com opacidade aumentada
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.globalAlpha = 0.45
+  ctx.globalAlpha = 0.55
   ctx.fillStyle = '#C5A55A'
   ctx.fillText(label, W / 2, H / 2)
 
