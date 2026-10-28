@@ -29,6 +29,10 @@ if (!PROPERTY_ARG || !FOLDER_ARG) {
   process.exit(1)
 }
 
+// Após a validação, garantimos que os valores existem
+const propertyCode = PROPERTY_ARG as string
+const folderPath = FOLDER_ARG as string
+
 async function loadLogo(): Promise<Buffer | null> {
   try {
     const logoPath = path.join(process.cwd(), 'public', 'nova-logo.png')
@@ -75,21 +79,21 @@ async function main() {
 
   // Busca o imóvel
   const property = await prisma.property.findFirst({
-    where: { code: PROPERTY_ARG },
+    where: { code: propertyCode },
     select: { id: true, code: true, title: true, photos: true }
   })
 
   if (!property) {
-    console.error(`❌ Imóvel ${PROPERTY_ARG} não encontrado!`)
+    console.error(`❌ Imóvel ${propertyCode} não encontrado!`)
     process.exit(1)
   }
 
   console.log(`📍 Imóvel: ${property.code} - ${property.title}`)
   console.log(`📸 Fotos atuais: ${property.photos.length}`)
-  console.log(`📁 Pasta de origem: ${FOLDER_ARG}\n`)
+  console.log(`📁 Pasta de origem: ${folderPath}\n`)
 
   // Lista arquivos na pasta
-  const files = await fs.readdir(FOLDER_ARG)
+  const files = await fs.readdir(folderPath)
   const imageFiles = files.filter(f => /\.(jpg|jpeg|png|webp|heic)$/i.test(f)).sort()
 
   console.log(`📷 Fotos encontradas na pasta: ${imageFiles.length}`)
@@ -118,7 +122,7 @@ async function main() {
     const file = imageFiles[i]
     console.log(`\n[${i + 1}/${imageFiles.length}] Processando ${file}...`)
 
-    const filePath = path.join(FOLDER_ARG, file)
+    const filePath = path.join(folderPath, file)
     const photoBuffer = await fs.readFile(filePath)
     const processed = await watermark(photoBuffer, logo)
 
