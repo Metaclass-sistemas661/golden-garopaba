@@ -7,7 +7,7 @@
   padding: 0 2rem;
   height: 110px;
   position: fixed; /* Header fixo no scroll */
-  top: 2.5rem; /* Aumentado para dar o efeito de flutuação e descolar do teto */
+  top: 3.5rem; /* Aumentado para desgrudar do topo */
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 4rem);
