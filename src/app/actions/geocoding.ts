@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAdminAuth } from '@/lib/auth'
 
 // ============================================================================
 // Server-side geocoding helpers
@@ -100,6 +101,7 @@ export interface BulkGeocodeResult {
 }
 
 export async function bulkGeocodeProperties(): Promise<BulkGeocodeResult> {
+  await requireAdminAuth()
   const apiKey = getGoogleMapsApiKey()
   if (!apiKey) {
     return {
@@ -149,6 +151,7 @@ export async function bulkGeocodeProperties(): Promise<BulkGeocodeResult> {
   }
 
   revalidatePath('/')
+  revalidatePath('/imoveis')
   revalidatePath('/imoveis/comprar')
   revalidatePath('/imoveis/alugar')
   revalidatePath('/lancamentos')
@@ -164,6 +167,7 @@ export async function geocodePropertyById(id: string): Promise<{
   coords?: { lat: number; lng: number }
   error?: string
 }> {
+  await requireAdminAuth()
   const apiKey = getGoogleMapsApiKey()
   if (!apiKey) return { success: false, error: 'API Key não configurada.' }
 
@@ -183,6 +187,7 @@ export async function geocodePropertyById(id: string): Promise<{
   await prisma.property.update({ where: { id }, data: { latitude: coords.lat, longitude: coords.lng } })
 
   revalidatePath('/')
+  revalidatePath('/imoveis')
   revalidatePath('/imoveis/comprar')
   revalidatePath('/imoveis/alugar')
   revalidatePath('/lancamentos')

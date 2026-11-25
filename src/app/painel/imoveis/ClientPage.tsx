@@ -2,67 +2,66 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, Handshake } from 'lucide-react'
 import styles from './page.module.css'
 import { deleteProperty } from '@/app/actions/properties'
 import TransactionModal from '@/components/admin/TransactionModal'
+import SmartImage from '@/components/common/SmartImage'
 import { PropertyDTO, BrokerDTO } from '@/types/dto'
-
-import Image from 'next/image'
+import { formatPropertyPriceLabel, getTransactionTagLabel, normalizeSearchText } from '@/utils/propertyDisplay'
 
 export default function AdminPropertiesListClient({ initialProperties, brokers }: { initialProperties: PropertyDTO[], brokers: BrokerDTO[] }) {
+  const router = useRouter()
   const [properties, setProperties] = useState<PropertyDTO[]>(initialProperties)
   const [isPending, setIsPending] = useState<string | null>(null)
-  
+
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const itemsPerPage = 8
 
-  // Estado do Modal de Transação
-  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE'|'RENT' } | null>(null)
+  const [modalData, setModalData] = useState<{ id: string, title: string, type: 'SALE' | 'RENT' } | null>(null)
 
-  const formatPrice = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-  }
-
-  // Handlers Reais com Server Actions
   const handleDelete = async (id: string) => {
-    if(confirm('Tem certeza que deseja excluir este imóvel definitivamente?')) {
+    if (confirm('Tem certeza que deseja excluir este imóvel definitivamente?')) {
       setIsPending(id)
       const res = await deleteProperty(id)
       if (res.success) {
-        setProperties(properties.filter(p => p.id !== id))
+        setProperties(prev => prev.filter(p => p.id !== id))
+        router.refresh()
+      } else {
+        alert('Não foi possível excluir o imóvel. Verifique sua sessão e tente novamente.')
       }
       setIsPending(null)
     }
   }
 
   const handleTransactionSuccess = () => {
+    if (modalData) {
+      const targetStatus = modalData.type === 'SALE' ? 'SOLD' : 'RENTED'
+      setProperties(prev => prev.map(p => (p.id === modalData.id ? { ...p, status: targetStatus } : p)))
+    }
     setModalData(null)
-    // Para simplificar, recarregamos a página para atualizar o status do servidor
-    window.location.reload()
+    router.refresh()
   }
 
-  // Derived state (Filters & Pagination)
   const filteredProperties = useMemo(() => {
+    const q = normalizeSearchText(searchQuery)
     return properties.filter(p => {
-      const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            p.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            (p.location || '').toLowerCase().includes(searchQuery.toLowerCase())
-      
+      const matchesSearch = !q || normalizeSearchText(`${p.title} ${p.code} ${p.location || ''}`).includes(q)
       const matchesStatus = statusFilter ? p.status === statusFilter : true
       const matchesType = typeFilter ? p.transactionType === typeFilter : true
-
       return matchesSearch && matchesStatus && matchesType
     })
   }, [properties, searchQuery, statusFilter, typeFilter])
 
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage) || 1
+  const safePage = Math.min(currentPage, totalPages)
   const paginatedProperties = filteredProperties.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (safePage - 1) * itemsPerPage,
+    safePage * itemsPerPage
   )
 
   return (
@@ -78,22 +77,22 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
         <div className={styles.filtersSection}>
           <div className={styles.searchBox}>
             <Search size={18} className={styles.searchIcon} />
-            <input 
-              type="text" 
-              placeholder="Buscar por código, título ou localização..." 
+            <input
+              type="text"
+              placeholder="Buscar por código, título ou localização..."
               className={styles.searchInput}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             />
           </div>
-          
+
           <div className={styles.filterDropdowns}>
             <div className={styles.filterIconWrapper}>
               <Filter size={18} />
             </div>
-            <select 
-              className={styles.select} 
-              value={statusFilter} 
+            <select
+              className={styles.select}
+              value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
             >
               <option value="">Status (Todos)</option>
@@ -101,7 +100,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
               <option value="SOLD">Vendido</option>
               <option value="RENTED">Alugado</option>
             </select>
-            <select 
+            <select
               className={styles.select}
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
@@ -109,6 +108,7 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
               <option value="">Categoria (Todas)</option>
               <option value="SALE">Venda</option>
               <option value="RENT">Aluguel</option>
+              <option value="LANCAMENTO">Lançamento</option>
             </select>
           </div>
         </div>
@@ -131,7 +131,16 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                   <tr key={property.id}>
                     <td>
                       <div className={styles.propertyInfo}>
-                        <Image src={property.photos[0] || '/placeholder.png'} alt={property.title} className={styles.thumb} width={64} height={64} unoptimized style={{objectFit: 'cover'}} />
+                        <SmartImage
+                          src={property.photos[0] || '/placeholder.svg'}
+                          alt={property.title}
+                          className={styles.thumb}
+                          width={64}
+                          height={64}
+                          sizes="64px"
+                          quality={75}
+                          style={{ objectFit: 'cover' }}
+                        />
                         <div>
                           <span className={styles.propertyTitle}>{property.title}</span>
                           <span className={styles.propertyLoc}>{property.location}</span>
@@ -139,13 +148,9 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                       </div>
                     </td>
                     <td><strong>{property.code}</strong></td>
-                    <td><span className={styles.typeBadge}>{property.transactionType === 'SALE' ? 'Venda' : property.transactionType === 'RENT' ? 'Aluguel' : 'Lançamento'}</span></td>
+                    <td><span className={styles.typeBadge}>{getTransactionTagLabel(property.transactionType)}</span></td>
                     <td className={styles.priceColumn}>
-                      {property.transactionType === 'RENT' 
-                        ? (property.rentPrice ? `${formatPrice(property.rentPrice)}/mês` : 'Sob Consulta')
-                        : (property.price > 0 
-                            ? formatPrice(property.price) 
-                            : ((property.rentPrice ?? 0) > 0 ? `${formatPrice(property.rentPrice ?? 0)}/mês` : 'Sob Consulta'))}
+                      {formatPropertyPriceLabel(property)}
                     </td>
                     <td>
                       <span className={
@@ -157,10 +162,11 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                     <td className={styles.actionsColumn}>
                       <div className={styles.actions}>
                         {property.status !== 'SOLD' && property.status !== 'RENTED' && (
-                          <button 
-                            className={`${styles.actionBtn} ${styles.btnSuccess}`} 
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.btnSuccess}`}
                             title="Registrar Fechamento"
-                            onClick={() => setModalData({ id: property.id, title: property.title, type: property.transactionType === 'LANCAMENTO' ? 'SALE' : property.transactionType as 'SALE' | 'RENT' })}
+                            onClick={() => setModalData({ id: property.id, title: property.title, type: property.transactionType === 'RENT' ? 'RENT' : 'SALE' })}
                           >
                             <Handshake size={18} />
                           </button>
@@ -168,9 +174,10 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
                         <Link href={`/painel/imoveis/${property.id}/editar`} className={styles.actionBtn} title="Editar Imóvel">
                           <Edit size={18} />
                         </Link>
-                        <button 
-                          className={`${styles.actionBtn} ${styles.danger}`} 
-                          title="Excluir" 
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.danger}`}
+                          title="Excluir"
                           onClick={() => handleDelete(property.id)}
                           disabled={isPending === property.id}
                         >
@@ -193,20 +200,22 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
 
         <div className={styles.pagination}>
           <span className={styles.pageInfo}>
-            Mostrando {filteredProperties.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredProperties.length)} de {filteredProperties.length} imóveis
+            Mostrando {filteredProperties.length === 0 ? 0 : (safePage - 1) * itemsPerPage + 1} a {Math.min(safePage * itemsPerPage, filteredProperties.length)} de {filteredProperties.length} imóveis
           </span>
           <div className={styles.pageButtons}>
-            <button 
-              className={styles.pageBtn} 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
+            <button
+              type="button"
+              className={styles.pageBtn}
+              disabled={safePage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             >
               <ChevronLeft size={16} /> Anterior
             </button>
-            <button 
-              className={styles.pageBtn} 
-              disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => setCurrentPage(p => p + 1)}
+            <button
+              type="button"
+              className={styles.pageBtn}
+              disabled={safePage >= totalPages || filteredProperties.length === 0}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             >
               Próxima <ChevronRight size={16} />
             </button>
@@ -214,8 +223,8 @@ export default function AdminPropertiesListClient({ initialProperties, brokers }
         </div>
       </div>
 
-      <TransactionModal 
-        isOpen={!!modalData} 
+      <TransactionModal
+        isOpen={!!modalData}
         onClose={() => setModalData(null)}
         propertyId={modalData?.id || ''}
         propertyTitle={modalData?.title || ''}

@@ -3,10 +3,9 @@ import Image from 'next/image'
 import styles from './Header.module.css'
 import { ChevronDown } from 'lucide-react'
 import MobileMenu from './MobileMenu'
+import { buildWhatsappUrl } from '@/utils/propertyDisplay'
 
 export default async function Header() {
-  // Settings podem ser buscadas se necessário
-
   return (
     <header className={styles.header}>
       <div className={`container ${styles.nav}`}>
@@ -23,9 +22,9 @@ export default async function Header() {
           
           {/* Dropdown Menu para Imóveis */}
           <div className={styles.dropdownContainer}>
-            <span className={styles.link} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Link href="/imoveis" className={styles.link} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Imóveis <ChevronDown size={16} />
-            </span>
+            </Link>
             <div className={styles.dropdownMenu}>
               <Link href="/imoveis/comprar" className={styles.dropdownItem}>Comprar</Link>
               <Link href="/imoveis/alugar" className={styles.dropdownItem}>Alugar</Link>
@@ -38,7 +37,7 @@ export default async function Header() {
 
         {/* Right: CTA Button */}
         <div className={styles.ctaContainer}>
-          <a href="https://wa.me/5548999999999?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" target="_blank" rel="noopener noreferrer" className={styles.ctaBtn}>
+          <a href={buildWhatsappUrl('Olá, gostaria de falar com um corretor!')} target="_blank" rel="noopener noreferrer" className={styles.ctaBtn}>
             Fale Conosco
           </a>
         </div>

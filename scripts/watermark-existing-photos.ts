@@ -50,24 +50,6 @@ async function download(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/** Baixa arquivo do bucket de backup */
-async function downloadFromBackup(backupPath: string): Promise<Buffer> {
-  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).download(backupPath)
-  if (error || !data) throw new Error(`Erro ao baixar backup ${backupPath}: ${error?.message}`)
-  return Buffer.from(await data.arrayBuffer())
-}
-
-/** Lista arquivos no bucket de backup */
-async function listBackupFiles(): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).list('imoveis', { limit: 1000 })
-  if (error) throw new Error(`Erro ao listar backups: ${error.message}`)
-  for (const file of data || []) {
-    map.set(file.name.toLowerCase(), `imoveis/${file.name}`)
-  }
-  return map
-}
-
 /**
  * Gera o overlay SVG com o nome da imobiliária em texto dourado semitransparente.
  * Sharp suporta SVG nativamente via librsvg — sem dependências extras.

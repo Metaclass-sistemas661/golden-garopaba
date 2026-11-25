@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowLeft, UserCircle2, ChevronRight, ChevronLeft } from 'lucide-react'
 import styles from './BrokerForm.module.css'
 import { saveBroker } from '@/app/actions/brokers'
@@ -11,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber } from '@/utils/mask'
 import { BrokerDTO } from '@/types/dto'
 import { processSingleImage, ACCEPTED_FILE_TYPES, ProcessedImage } from '@/utils/imageProcessing'
+import SmartImage from '@/components/common/SmartImage'
 
 interface BrokerFormProps {
   initialData?: BrokerDTO
@@ -50,6 +50,13 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
   const [youtubeUrl, setYoutubeUrl] = useState(initialData?.youtubeUrl || '')
 
   const supabase = createClient()
+  const avatarBlobUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current)
+    }
+  }, [])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -58,8 +65,11 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
     setProcessingAvatar(true)
     try {
       const img = await processSingleImage(file, { maxDimension: 1024 })
+      if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current)
+      const nextBlobUrl = URL.createObjectURL(img.blob)
+      avatarBlobUrlRef.current = nextBlobUrl
       setAvatarFile(img)
-      setAvatarUrl(URL.createObjectURL(img.blob))
+      setAvatarUrl(nextBlobUrl)
     } catch (err) {
       console.error('Erro ao processar foto:', err)
       alert(`Não foi possível ler a imagem "${file.name}": ${err instanceof Error ? err.message : 'formato inválido'}`)
@@ -92,6 +102,24 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validação explícita por aba (inputs em abas ocultas com display:none não são focáveis pelo HTML5)
+    if (!fullName.trim() || !displayName.trim() || !creci.trim()) {
+      setActiveTab('personal')
+      alert('Preencha Nome Completo, Nome de Exibição e CRECI na aba "Dados Pessoais".')
+      return
+    }
+    if (!email.trim() || !whatsapp.trim()) {
+      setActiveTab('contact')
+      alert('Preencha E-mail Corporativo e WhatsApp na aba "Contato e Endereço".')
+      return
+    }
+    if (!specialty.trim() || !commissionPercentageSale.trim() || !commissionPercentageRent.trim()) {
+      setActiveTab('professional')
+      alert('Preencha Especialidade e Comissões na aba "Perfil Profissional".')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -123,6 +151,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
 
       if (res.success) {
         router.push('/painel/corretores')
+        router.refresh()
       } else {
         alert(res.error || 'Erro ao salvar corretor.')
       }
@@ -164,7 +193,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
           </button>
         </aside>
 
-        <form id="brokerForm" className={styles.formContent} onSubmit={handleSave}>
+        <form id="brokerForm" className={styles.formContent} onSubmit={handleSave} noValidate>
           <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={ACCEPTED_FILE_TYPES} style={{ display: 'none' }} />
           
           {/* TAB 1: Pessoal */}
@@ -175,7 +204,7 @@ export default function BrokerForm({ initialData }: BrokerFormProps) {
               <div className={styles.avatarUploadArea}>
                 <div className={styles.avatarCircle}>
                   {avatarUrl ? (
-                    <Image src={avatarUrl} alt="Avatar" width={96} height={96} unoptimized style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                    <SmartImage src={avatarUrl} alt="Avatar" width={96} height={96} sizes="96px" style={{ borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <UserCircle2 size={48} strokeWidth={1} />
                   )}

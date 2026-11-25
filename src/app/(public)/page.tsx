@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import prisma from '@/lib/prisma'
 import HomeClient from './HomeClient'
-import { serializeProperty } from '@/utils/serializers'
+import { PROPERTY_CARD_SELECT, serializePropertyCard } from '@/utils/serializers'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,14 +11,14 @@ export const metadata: Metadata = {
 }
 
 export default async function Home() {
-  // Buscar os 3 imóveis mais recentes (ou "Destaques")
   const properties = await prisma.property.findMany({
     where: { featured: true },
+    select: PROPERTY_CARD_SELECT,
     take: 3,
     orderBy: { createdAt: 'desc' }
   })
-  
-  const serializedProperties = properties.map(serializeProperty)
+
+  const serializedProperties = properties.map(serializePropertyCard)
 
   return <HomeClient featuredProperties={serializedProperties} />
 }

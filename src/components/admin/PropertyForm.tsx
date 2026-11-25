@@ -2,15 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { ArrowLeft, UploadCloud, CheckCircle2, Circle, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Palette, Smile, Trash2, Loader2, ChevronRight, ChevronLeft, Search } from 'lucide-react'
 import styles from './PropertyForm.module.css'
-import { saveProperty } from '@/app/actions/properties'
 import { createClient } from '@/lib/supabase/client'
-import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput } from '@/utils/mask'
+import { formatCurrency, formatCurrencyInput, parseCurrencyToNumber, formatNumberInput, formatDecimalInput } from '@/utils/mask'
 import { PropertyDTO } from '@/types/dto'
 import { processUploadFile, prepareWatermark, ACCEPTED_FILE_TYPES, type Watermark } from '@/utils/imageProcessing'
 import { getSettings } from '@/app/actions/settings'
+import SmartImage from '@/components/common/SmartImage'
 
 interface PropertyFormProps {
   initialData?: PropertyDTO;
@@ -227,15 +226,19 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
   }, [title, code, transactionType, status, selectedCategory, selectedType, zipCode, street, addressNumber, complement, neighborhood, city, addressState, price, rentPrice, condoPrice, iptuPrice, featured, latitude, longitude, areaTotal, areaUseful, bedrooms, suites, bathrooms, parkingSpaces, features, leisure, security, furniture, environments, infrastructure, photos, tourLink, videoLink, financeable])
 
   // Salva imediatamente ao sair/recarregar a página (inclui descrição)
+  const buildDraftRef = useRef(buildDraft)
+  useEffect(() => {
+    buildDraftRef.current = buildDraft
+  })
   useEffect(() => {
     const flush = () => {
       if (!draftReadyRef.current) return
-      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft())) } catch { /* ignore */ }
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraftRef.current())) } catch { /* ignore */ }
     }
     window.addEventListener('beforeunload', flush)
     window.addEventListener('pagehide', flush)
     return () => { window.removeEventListener('beforeunload', flush); window.removeEventListener('pagehide', flush) }
-  })
+  }, [DRAFT_KEY])
 
   const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ } }
 
@@ -566,13 +569,19 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
     }
 
     try {
-      const res = await saveProperty(payload, isEdit, initialData?.id)
-      if (res.success) {
+      const response = await fetch('/api/admin/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload, isEdit, id: initialData?.id }),
+      })
+      const res = await response.json().catch(() => null)
+      if (response.ok && res?.success) {
         clearDraft()
         draftReadyRef.current = false
         router.push('/painel/imoveis')
+        router.refresh()
       } else {
-        alert('Erro ao salvar o imóvel: ' + res.error)
+        alert('Erro ao salvar o imóvel: ' + (res?.error || `HTTP ${response.status}`))
         setIsSaving(false)
       }
     } catch (err) {
@@ -947,11 +956,11 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
               <div className={styles.grid3}>
                 <div className={styles.formGroup}>
                   <label>Área Total (m²)</label>
-                  <input type="text" value={areaTotal} onChange={e => setAreaTotal(formatNumberInput(e.target.value))} />
+                  <input type="text" value={areaTotal} onChange={e => setAreaTotal(formatDecimalInput(e.target.value))} placeholder="Ex: 350,50" />
                 </div>
                 <div className={styles.formGroup}>
                   <label>Área Útil (m²)</label>
-                  <input type="text" value={areaUseful} onChange={e => setAreaUseful(formatNumberInput(e.target.value))} />
+                  <input type="text" value={areaUseful} onChange={e => setAreaUseful(formatDecimalInput(e.target.value))} placeholder="Ex: 280,00" />
                 </div>
                 <div className={styles.formGroup}>
                   <label>Quartos</label>
@@ -1057,15 +1066,16 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
               </div>
               
               <div className={styles.formGroup}>
-                <div className={styles.uploadArea} onClick={() => fileInputRef.current?.click()} style={{ cursor: 'pointer' }}>
+                <div className={styles.uploadArea} onClick={() => !uploadingFiles && fileInputRef.current?.click()} style={{ cursor: uploadingFiles ? 'wait' : 'pointer' }}>
                   {uploadingFiles ? <Loader2 size={48} className={styles.spin} /> : <UploadCloud size={48} className={styles.uploadIcon} />}
                   <p>{uploadingFiles ? 'Enviando arquivos (Aguarde...)' : 'Clique para selecionar fotos e enviar para a Nuvem'}</p>
-                  <input 
-                    type="file" 
-                    multiple 
+                  <input
+                    type="file"
+                    multiple
                     accept={ACCEPTED_FILE_TYPES}
-                    ref={fileInputRef} 
-                    style={{ display: 'none' }} 
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    disabled={uploadingFiles}
                     onChange={handleFileUpload}
                   />
                 </div>
@@ -1078,7 +1088,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                 <div className={styles.photoPreviewGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                   {photos.map((url: string, idx: number) => (
                     <div
-                      key={url}
+                      key={`${url}-${idx}`}
                       draggable
                       onDragStart={(e) => { setDragIndex(idx); e.dataTransfer.effectAllowed = 'move' }}
                       onDragOver={(e) => { e.preventDefault(); if (dragOverIndex !== idx) setDragOverIndex(idx) }}
@@ -1087,7 +1097,7 @@ export default function PropertyForm({ initialData, isEdit = false }: PropertyFo
                       onDragEnd={() => { setDragIndex(null); setDragOverIndex(null) }}
                       style={{ position: 'relative', aspectRatio: '4/3', borderRadius: '8px', overflow: 'hidden', cursor: 'grab', background: '#f1f5f9', opacity: dragIndex === idx ? 0.4 : 1, border: dragOverIndex === idx && dragIndex !== idx ? '3px dashed #10b981' : idx === 0 ? '3px solid #10b981' : '1px solid #e2e8f0', transition: 'border 0.15s, opacity 0.15s' }}
                     >
-                      <Image src={url} alt={`Foto ${idx + 1}`} fill unoptimized draggable={false} style={{ objectFit: 'cover', pointerEvents: 'none' }} />
+                      <SmartImage src={url} alt={`Foto ${idx + 1}`} fill sizes="200px" quality={75} draggable={false} style={{ objectFit: 'cover', pointerEvents: 'none' }} />
                       <span style={{ position: 'absolute', top: '5px', left: '5px', background: idx === 0 ? '#10b981' : 'rgba(15,23,42,0.75)', color: 'white', fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', zIndex: 10 }}>
                         {idx === 0 ? '★ Capa' : `#${idx + 1}`}
                       </span>

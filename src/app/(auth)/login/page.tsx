@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Building2, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { buildWhatsappUrl } from '@/utils/propertyDisplay'
 import styles from './page.module.css'
 
 export default function LoginPage() {
@@ -97,7 +98,7 @@ export default function LoginPage() {
               </div>
 
               <div className={styles.forgotWrapper}>
-                <Link href="/recuperar-senha" className={styles.forgotLink}>
+                <Link href="/esqueceu-senha" className={styles.forgotLink}>
                   Esqueceu a senha?
                 </Link>
               </div>
@@ -108,7 +109,7 @@ export default function LoginPage() {
             </form>
 
             <div className={styles.registerWrapper}>
-              <p>Ainda não possui conta? <Link href="/cadastro" className={styles.registerLink}>Criar conta grátis</Link></p>
+              <p>Acesso restrito à equipe. <Link href="/" className={styles.registerLink}>Voltar ao site</Link></p>
             </div>
           </div>
         </div>
@@ -119,9 +120,9 @@ export default function LoginPage() {
             <Link href="/sobre">Sobre</Link>
             <Link href="/termos">Termos & Condições</Link>
             <Link href="/privacidade">Política de Privacidade</Link>
-            <Link href="/contato">Contato</Link>
+            <a href={buildWhatsappUrl('Olá, preciso de suporte com o acesso ao painel.')} target="_blank" rel="noopener noreferrer">Contato</a>
           </div>
-          <p className={styles.copyright}>© 2026 Garopaba Imóveis. Todos os direitos reservados.</p>
+          <p className={styles.copyright}>© {new Date().getFullYear()} Golden Garopaba. Todos os direitos reservados.</p>
         </div>
       </div>
 

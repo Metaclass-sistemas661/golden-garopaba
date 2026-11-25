@@ -17,8 +17,8 @@ export const ACCEPTED_FILE_TYPES = [
   '.ico', '.svg', '.heic', '.heif', '.tif', '.tiff', '.psd', '.pdf',
 ].join(',')
 
-const MAX_DIMENSION = 4000
-const QUALITY = 0.88
+const DEFAULT_MAX_DIMENSION = 1920
+const DEFAULT_QUALITY = 0.82
 
 export interface ProcessedImage {
   blob: Blob
@@ -27,11 +27,39 @@ export interface ProcessedImage {
   sourceName: string
 }
 
+export interface Watermark {
+  /** Canvas com logo já processada (fundo branco removido) */
+  image: HTMLCanvasElement
+  width: number
+  height: number
+}
+
+export interface ProcessOptions {
+  maxDimension?: number
+  quality?: number
+  transparent?: boolean
+  /** Logo para marca d'água (use loadWatermark). Fundo branco removido automaticamente. */
+  watermark?: Watermark | null
+  /** Texto fallback caso não haja logo cadastrada */
+  watermarkText?: string | null
+}
+
+interface ResolvedOptions {
+  maxDimension: number
+  quality: number
+  transparent: boolean
+  watermark: Watermark | null
+  watermarkText: string | null
+}
+
 const extOf = (name: string) => (name.split('.').pop() || '').toLowerCase()
 
-async function canvasToBlob(canvas: HTMLCanvasElement): Promise<{ blob: Blob; ext: 'webp' | 'jpg' | 'png' }> {
+async function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  opts: ResolvedOptions
+): Promise<{ blob: Blob; ext: 'webp' | 'jpg' | 'png' }> {
   const toBlob = (type: string) =>
-    new Promise<Blob | null>(res => canvas.toBlob(b => res(b), type, QUALITY))
+    new Promise<Blob | null>((res) => canvas.toBlob((b) => res(b), type, opts.quality))
   const webp = await toBlob('image/webp')
   if (webp && webp.type === 'image/webp') return { blob: webp, ext: 'webp' }
   const fallback = opts.transparent ? 'image/png' : 'image/jpeg'
@@ -40,13 +68,13 @@ async function canvasToBlob(canvas: HTMLCanvasElement): Promise<{ blob: Blob; ex
   return { blob: out, ext: opts.transparent ? 'png' : 'jpg' }
 }
 
-function fitSize(w: number, h: number) {
-  const scale = Math.min(1, opts.maxDimension / Math.max(w, h))
+function fitSize(w: number, h: number, maxDimension: number) {
+  const scale = Math.min(1, maxDimension / Math.max(w, h))
   return { w: Math.round(w * scale), h: Math.round(h * scale) }
 }
 
-function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
-  const { w, h } = fitSize(srcW, srcH)
+function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number, opts: ResolvedOptions) {
+  const { w, h } = fitSize(srcW, srcH, opts.maxDimension)
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -63,39 +91,6 @@ function drawToCanvas(source: CanvasImageSource, srcW: number, srcH: number) {
 
 // ─── WATERMARK: logo sem fundo branco ────────────────────────────────────────
 
-export interface Watermark {
-  /** Canvas com logo já processada (fundo branco removido) */
-  image: HTMLCanvasElement
-  width: number
-  height: number
-}
-
-export interface ProcessOptions {
-  maxDimension?: number
-  transparent?: boolean
-  /** Logo para marca d'água (use loadWatermark). Fundo branco removido automaticamente. */
-  watermark?: Watermark | null
-  /** Texto fallback caso não haja logo cadastrada */
-  watermarkText?: string | null
-}
-
-// Redefine opts para incluir ambos os modos
-let opts: { maxDimension: number; transparent: boolean; watermark: Watermark | null; watermarkText: string | null } =
-  { maxDimension: MAX_DIMENSION, transparent: false, watermark: null, watermarkText: null }
-
-/**
- * Remove o fundo da logo de forma profissional:
- *
- * 1. Detecta a cor de fundo pelas bordas da imagem (branco, off-white,
- *    cinza claro ou qualquer cor sólida). Se as bordas já são transparentes,
- *    a logo é mantida como está.
- * 2. Flood-fill a partir das bordas: remove SOMENTE o fundo conectado às
- *    bordas — detalhes brancos internos da logo (letras, ícones) são preservados.
- * 3. Limpa o "halo" claro do anti-aliasing nas bordas da logo
- *    (descontaminação de cor), evitando o contorno esbranquiçado.
- * 4. Recorta as margens vazias (auto-trim), para a logo ficar
- *    centralizada e no tamanho correto sobre a foto.
- */
 function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCanvasElement {
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!
   const { width: w, height: h } = canvas
@@ -103,7 +98,6 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
   const imageData = ctx.getImageData(0, 0, w, h)
   const d = imageData.data
 
-  // ── 1. Amostra as bordas ──
   let total = 0, opaque = 0, sr = 0, sg = 0, sb = 0
   const sample = (x: number, y: number) => {
     const i = (y * w + x) * 4
@@ -118,7 +112,6 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
     const dist = (i: number) =>
       Math.max(Math.abs(d[i] - bgR), Math.abs(d[i + 1] - bgG), Math.abs(d[i + 2] - bgB))
 
-    // ── 2. Flood-fill a partir das bordas ──
     const removed = new Uint8Array(w * h)
     const queue = new Int32Array(w * h)
     let head = 0, tail = 0
@@ -139,7 +132,6 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
     }
     for (let p = 0; p < w * h; p++) if (removed[p]) d[p * 4 + 3] = 0
 
-    // ── 3. Descontamina o halo (pixels de borda misturados com o fundo) ──
     const haloRange = tolerance * 3
     for (let pass = 0; pass < 2; pass++) {
       const edge: number[] = []
@@ -154,19 +146,17 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
         const dd = dist(i)
         if (dd < haloRange) {
           const a = Math.max(0.05, dd / haloRange)
-          // Remove a contribuição da cor de fundo: c = (c_obs - bg*(1-a)) / a
           d[i]     = Math.max(0, Math.min(255, Math.round((d[i]     - bgR * (1 - a)) / a)))
           d[i + 1] = Math.max(0, Math.min(255, Math.round((d[i + 1] - bgG * (1 - a)) / a)))
           d[i + 2] = Math.max(0, Math.min(255, Math.round((d[i + 2] - bgB * (1 - a)) / a)))
           d[i + 3] = Math.round(d[i + 3] * a)
         }
-        removed[p] = 2 // marca como processado para o próximo anel
+        removed[p] = 2
       }
     }
     ctx.putImageData(imageData, 0, 0)
   }
 
-  // ── 4. Auto-trim das margens transparentes ──
   let minX = w, minY = h, maxX = -1, maxY = -1
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -178,7 +168,7 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
       }
     }
   }
-  if (maxX < 0) return canvas // imagem vazia — devolve original
+  if (maxX < 0) return canvas
   const pad = 2
   minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad)
   maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad)
@@ -193,14 +183,9 @@ function removeLogoBackground(canvas: HTMLCanvasElement, tolerance = 42): HTMLCa
 
 const watermarkCache = new Map<string, Promise<Watermark>>()
 
-/**
- * Baixa a logo, remove o fundo branco e prepara para uso como marca d'água.
- * O resultado é cacheado — a mesma URL só é processada uma vez por sessão.
- */
 export function loadWatermark(url: string): Promise<Watermark> {
   if (!watermarkCache.has(url)) {
     const p = (async () => {
-      // fetch + blob evita "tainted canvas" (CORS) ao exportar a imagem
       const res = await fetch(url, { cache: 'force-cache' })
       if (!res.ok) throw new Error(`Logo indisponível (HTTP ${res.status})`)
       const blob = await res.blob()
@@ -212,16 +197,13 @@ export function loadWatermark(url: string): Promise<Watermark> {
           el.onerror = () => fail(new Error('Logo em formato inválido'))
           el.src = objUrl
         })
-        // Rasteriza em alta resolução (necessário para SVG sem dimensões)
         const nw = img.naturalWidth || 1200
         const nh = img.naturalHeight || 400
         const scale = Math.max(1, 1600 / Math.max(nw, nh))
         const c = document.createElement('canvas')
         c.width = Math.round(nw * scale)
         c.height = Math.round(nh * scale)
-        // Não preenche fundo branco: preserva transparência original
         c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
-        // Remove o fundo (branco ou cor sólida), limpa halo e recorta margens
         const clean = removeLogoBackground(c)
         return { image: clean, width: clean.width, height: clean.height }
       } finally {
@@ -234,21 +216,13 @@ export function loadWatermark(url: string): Promise<Watermark> {
   return watermarkCache.get(url)!
 }
 
-/**
- * Aplica a marca d'água no centro do canvas.
- * Prioridade: logo (loadWatermark) > texto (watermarkText).
- * Marca d'água visível: tamanho reduzido (15% da largura) 
- * com opacidade de 50% para boa visibilidade.
- */
-async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
+async function applyWatermark(canvas: HTMLCanvasElement, opts: ResolvedOptions): Promise<void> {
   const ctx = canvas.getContext('2d')!
   const W = canvas.width
   const H = canvas.height
 
-  // ── Modo 1: Logo da imobiliária (sem fundo branco) ──
   const wm = opts.watermark
   if (wm && wm.width && wm.height) {
-    // Tamanho discreto: 15% da largura, limitada a 15% da altura
     let w = W * 0.15
     let h = w * (wm.height / wm.width)
     if (h > H * 0.15) { h = H * 0.15; w = h * (wm.width / wm.height) }
@@ -258,13 +232,12 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
     ctx.save()
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.globalAlpha = 0.75   // Opacidade 75%: bem visível
+    ctx.globalAlpha = 0.75
     ctx.drawImage(wm.image, x, y, w, h)
     ctx.restore()
     return
   }
 
-  // ── Modo 2: Texto dourado (fallback quando não há logo) ──
   const text = opts.watermarkText
   if (!text) return
 
@@ -278,7 +251,6 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   ctx.textBaseline = 'middle'
   ctx.textAlign = 'center'
 
-  // Passada 1: sombra escura suave
   ctx.globalAlpha = 0.45
   ctx.shadowColor = 'rgba(0,0,0,0.8)'
   ctx.shadowBlur = blur * 2
@@ -288,7 +260,6 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   ctx.strokeText(label, W / 2, H / 2)
   ctx.fillText(label, W / 2, H / 2)
 
-  // Passada 2: texto dourado principal com opacidade aumentada
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
   ctx.globalAlpha = 0.55
@@ -298,25 +269,23 @@ async function applyWatermark(canvas: HTMLCanvasElement): Promise<void> {
   ctx.restore()
 }
 
-/** Pré-carrega a logo para uso como marca d'água. */
 export async function prepareWatermark(url: string): Promise<Watermark> {
   return loadWatermark(url)
 }
 
-async function finalize(canvas: HTMLCanvasElement, sourceName: string): Promise<ProcessedImage> {
-  await applyWatermark(canvas)   // ← await: garante fonte carregada e texto desenhado
-  const { blob, ext } = await canvasToBlob(canvas)
+async function finalize(canvas: HTMLCanvasElement, sourceName: string, opts: ResolvedOptions): Promise<ProcessedImage> {
+  await applyWatermark(canvas, opts)
+  const { blob, ext } = await canvasToBlob(canvas, opts)
   return { blob, ext, contentType: blob.type, sourceName }
 }
 
-/** Decodifica qualquer blob que o navegador entenda nativamente. */
-async function decodeNative(blob: Blob, name: string): Promise<ProcessedImage> {
+async function decodeNative(blob: Blob, name: string, opts: ResolvedOptions): Promise<ProcessedImage> {
   if (typeof createImageBitmap === 'function') {
     try {
       const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' })
-      const canvas = drawToCanvas(bmp, bmp.width, bmp.height)
+      const canvas = drawToCanvas(bmp, bmp.width, bmp.height, opts)
       bmp.close()
-      return finalize(canvas, name)
+      return finalize(canvas, name, opts)
     } catch { /* fallback para <img> (ex.: SVG) */ }
   }
   const url = URL.createObjectURL(blob)
@@ -328,21 +297,15 @@ async function decodeNative(blob: Blob, name: string): Promise<ProcessedImage> {
       el.src = url
     })
     const isSvg = blob.type.includes('svg') || /\.svg$/i.test(name)
-    // Sem dimensões = decodificação falhou silenciosamente (evita gerar imagem em branco)
     if (!img.naturalWidth && !isSvg) throw new Error('Imagem sem dimensões (decodificação falhou)')
     const w = img.naturalWidth || 1920
     const h = img.naturalHeight || 1080
-    return finalize(drawToCanvas(img, w, h), name)
+    return finalize(drawToCanvas(img, w, h, opts), name, opts)
   } finally {
     URL.revokeObjectURL(url)
   }
 }
 
-/**
- * Detecta HEIC/HEIF pelo conteúdo (assinatura ISO-BMFF "ftyp" + brand),
- * independente de extensão ou MIME — cobre arquivos renomeados para .jpg,
- * vindos do WhatsApp/AirDrop/Google Fotos, ou com MIME vazio no Windows.
- */
 const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1', 'mif2', 'miaf']
 async function sniffHeic(file: Blob): Promise<boolean> {
   try {
@@ -353,7 +316,6 @@ async function sniffHeic(file: Blob): Promise<boolean> {
     const boxSize = Math.min(64, (head[0] << 24) | (head[1] << 16) | (head[2] << 8) | head[3])
     const brands = [ascii(8, 12)]
     for (let i = 16; i + 4 <= boxSize; i += 4) brands.push(ascii(i, i + 4))
-    // AVIF também usa mif1, mas navegadores modernos decodificam nativamente
     if (brands.includes('avif') || brands.includes('avis')) return false
     return brands.some(b => HEIF_BRANDS.includes(b))
   } catch {
@@ -361,31 +323,28 @@ async function sniffHeic(file: Blob): Promise<boolean> {
   }
 }
 
-async function decodeHeic(file: File): Promise<ProcessedImage> {
+async function decodeHeic(file: File, opts: ResolvedOptions): Promise<ProcessedImage> {
   const errors: string[] = []
 
-  // 1) Nativo: Safari/macOS/iOS (e Windows com extensão HEIF) decodificam direto
-  try { return await decodeNative(file, file.name) } catch (e) { errors.push(`nativo: ${(e as Error).message}`) }
+  try { return await decodeNative(file, file.name, opts) } catch (e) { errors.push(`nativo: ${(e as Error).message}`) }
 
-  // 2) heic-to (libheif 1.23 — suporta HEIC de iPhones recentes, HDR, grids, 10-bit)
   try {
     const { heicTo } = await import('heic-to/next')
     const bmp = await heicTo({ blob: file, type: 'bitmap', options: { imageOrientation: 'from-image' } })
-    const canvas = drawToCanvas(bmp, bmp.width, bmp.height)
+    const canvas = drawToCanvas(bmp, bmp.width, bmp.height, opts)
     bmp.close()
-    return await finalize(canvas, file.name)
+    return await finalize(canvas, file.name, opts)
   } catch (e) {
     errors.push(`heic-to: ${(e as Error)?.message || e}`)
   }
 
-  // 3) heic2any (libheif antigo) como último recurso
   try {
     const heic2any = (await import('heic2any')).default
-    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.95 })
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 })
     const jpeg = Array.isArray(out) ? out[0] : out
-    return await decodeNative(jpeg, file.name)
+    return await decodeNative(jpeg, file.name, opts)
   } catch (e) {
-    const err = e as { message?: string; code?: number }
+    const err = e as { message?: string }
     errors.push(`heic2any: ${err?.message || JSON.stringify(e)}`)
   }
 
@@ -393,7 +352,7 @@ async function decodeHeic(file: File): Promise<ProcessedImage> {
   throw new Error('Não foi possível converter o HEIC. No iPhone, ative Ajustes → Câmera → Formatos → "Mais Compatível" ou exporte como JPG.')
 }
 
-async function decodeTiff(file: File): Promise<ProcessedImage[]> {
+async function decodeTiff(file: File, opts: ResolvedOptions): Promise<ProcessedImage[]> {
   const UTIF = (await import('utif2')).default
   const buf = await file.arrayBuffer()
   const ifds = UTIF.decode(buf)
@@ -408,14 +367,14 @@ async function decodeTiff(file: File): Promise<ProcessedImage[]> {
     src.width = w
     src.height = h
     src.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0)
-    results.push(await finalize(drawToCanvas(src, w, h), file.name))
-    break // apenas a imagem principal (demais páginas costumam ser miniaturas)
+    results.push(await finalize(drawToCanvas(src, w, h, opts), file.name, opts))
+    break
   }
   if (!results.length) throw new Error('TIFF sem imagem válida')
   return results
 }
 
-async function decodePsd(file: File): Promise<ProcessedImage> {
+async function decodePsd(file: File, opts: ResolvedOptions): Promise<ProcessedImage> {
   const { readPsd } = await import('ag-psd')
   const psd = readPsd(await file.arrayBuffer(), {
     skipLayerImageData: true,
@@ -424,10 +383,10 @@ async function decodePsd(file: File): Promise<ProcessedImage> {
   })
   const composite = psd.canvas as HTMLCanvasElement | undefined
   if (!composite) throw new Error('PSD sem imagem composta (salve com "Maximizar compatibilidade")')
-  return finalize(drawToCanvas(composite, composite.width, composite.height), file.name)
+  return finalize(drawToCanvas(composite, composite.width, composite.height, opts), file.name, opts)
 }
 
-async function decodePdf(file: File): Promise<ProcessedImage[]> {
+async function decodePdf(file: File, opts: ResolvedOptions): Promise<ProcessedImage[]> {
   const pdfjs = await import('pdfjs-dist')
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -447,45 +406,43 @@ async function decodePdf(file: File): Promise<ProcessedImage[]> {
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     await page.render({ canvasContext: ctx, viewport, canvas }).promise
-    results.push(await finalize(canvas, `${file.name} (pág. ${p})`))
+    results.push(await finalize(canvas, `${file.name} (pág. ${p})`, opts))
   }
   return results
 }
 
 /** Converte um arquivo qualquer em uma ou mais imagens prontas para web. */
 export async function processUploadFile(file: File, options: ProcessOptions = {}): Promise<ProcessedImage[]> {
-  const previous = opts
-  opts = {
-    maxDimension: options.maxDimension ?? MAX_DIMENSION,
+  const opts: ResolvedOptions = {
+    maxDimension: options.maxDimension ?? DEFAULT_MAX_DIMENSION,
+    quality: options.quality ?? DEFAULT_QUALITY,
     transparent: options.transparent ?? false,
     watermark: options.watermark ?? null,
     watermarkText: options.watermarkText ?? null,
   }
-  try {
-    return await processInternal(file)
-  } finally {
-    opts = previous
-  }
+  return processInternal(file, opts)
 }
 
-async function processInternal(file: File): Promise<ProcessedImage[]> {
+async function processInternal(file: File, opts: ResolvedOptions): Promise<ProcessedImage[]> {
   const ext = extOf(file.name)
   const type = (file.type || '').toLowerCase()
 
-  if (type === 'application/pdf' || ext === 'pdf') return decodePdf(file)
-  if (type.includes('heic') || type.includes('heif') || ext === 'heic' || ext === 'heif' || await sniffHeic(file)) return [await decodeHeic(file)]
-  if (type === 'image/tiff' || ext === 'tif' || ext === 'tiff') {
-    try { return [await decodeNative(file, file.name)] } catch { return decodeTiff(file) }
+  if (type === 'application/pdf' || ext === 'pdf') return decodePdf(file, opts)
+  if (type.includes('heic') || type.includes('heif') || ext === 'heic' || ext === 'heif' || await sniffHeic(file)) {
+    return [await decodeHeic(file, opts)]
   }
-  if (ext === 'psd' || type.includes('photoshop') || type === 'image/vnd.adobe.photoshop') return [await decodePsd(file)]
+  if (type === 'image/tiff' || ext === 'tif' || ext === 'tiff') {
+    try { return [await decodeNative(file, file.name, opts)] } catch { return decodeTiff(file, opts) }
+  }
+  if (ext === 'psd' || type.includes('photoshop') || type === 'image/vnd.adobe.photoshop') {
+    return [await decodePsd(file, opts)]
+  }
 
-  // GIF animado: mantém original para preservar animação — exceto quando há
-  // marca d'água, pois um GIF sem proteção anularia a segurança.
   if ((type === 'image/gif' || ext === 'gif') && !opts.watermarkText && !opts.watermark) {
     return [{ blob: file, ext: 'gif', contentType: 'image/gif', sourceName: file.name }]
   }
 
-  return [await decodeNative(file, file.name)]
+  return [await decodeNative(file, file.name, opts)]
 }
 
 /** Atalho para campos de imagem única (avatar, logo): retorna a primeira imagem. */

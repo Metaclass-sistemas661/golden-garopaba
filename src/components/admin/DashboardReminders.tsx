@@ -4,13 +4,27 @@ import Link from 'next/link'
 import styles from '@/app/painel/page.module.css'
 
 export default async function DashboardReminders() {
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+
+  const [newLeadsCount, propertiesWithoutPhotosCount, stagnantPropertiesCount] = await Promise.all([
+    prisma.lead.count({ where: { status: 'NEW' } }),
+    prisma.property.count({
+      where: {
+        status: 'AVAILABLE',
+        photos: { isEmpty: true }
+      }
+    }),
+    prisma.property.count({
+      where: {
+        status: 'AVAILABLE',
+        createdAt: { lt: ninetyDaysAgo }
+      }
+    }),
+  ])
+
   const alerts = []
-  
-  // 1. Leads aguardando atendimento
-  const newLeadsCount = await prisma.lead.count({
-    where: { status: 'NEW' }
-  })
-  
+
   if (newLeadsCount > 0) {
     alerts.push({
       id: 'leads-new',
@@ -18,42 +32,21 @@ export default async function DashboardReminders() {
       icon: <AlertCircle size={20} color="#ef4444" />,
       title: 'Leads não respondidos',
       text: `Existem ${newLeadsCount} novos leads aguardando seu primeiro contato. Quanto mais rápido responder, maior a conversão.`,
-      link: '/painel/leads' // Se a rota leads ainda não existir, isso preparará o terreno
+      link: '/painel'
     })
   }
-  
-  // 2. Imóveis sem fotos
-  const propertiesWithoutPhotos = await prisma.property.findMany({
-    where: { 
-      status: 'AVAILABLE',
-    },
-    select: { id: true, photos: true }
-  })
-  
-  const propertiesReallyWithoutPhotos = propertiesWithoutPhotos.filter(p => p.photos.length === 0)
-  
-  if (propertiesReallyWithoutPhotos.length > 0) {
+
+  if (propertiesWithoutPhotosCount > 0) {
     alerts.push({
       id: 'props-no-photo',
       type: 'warning',
       icon: <AlertTriangle size={20} color="#f59e0b" />,
       title: 'Imóveis sem fotos',
-      text: `Existem ${propertiesReallyWithoutPhotos.length} imóveis ativos sem nenhuma foto. Anúncios sem imagem são fortemente penalizados nas buscas.`,
+      text: `Existem ${propertiesWithoutPhotosCount} imóveis ativos sem nenhuma foto. Anúncios sem imagem são fortemente penalizados nas buscas.`,
       link: '/painel/imoveis'
     })
   }
 
-  // 3. Imóveis Estagnados (> 90 dias)
-  const ninetyDaysAgo = new Date()
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-  
-  const stagnantPropertiesCount = await prisma.property.count({
-    where: { 
-      status: 'AVAILABLE',
-      createdAt: { lt: ninetyDaysAgo }
-    }
-  })
-  
   if (stagnantPropertiesCount > 0) {
     alerts.push({
       id: 'props-stagnant',
@@ -64,19 +57,19 @@ export default async function DashboardReminders() {
       link: '/painel/imoveis'
     })
   }
-  
+
   return (
     <div className={styles.insightsCard}>
       <div className={styles.cardHeader}>
         <h3>Alertas Inteligentes</h3>
         <AlertCircle size={18} color="#f59e0b" />
       </div>
-      
+
       <div className={styles.insightList}>
         {alerts.length === 0 ? (
           <div className={styles.insightItem} style={{ border: '1px solid #10b981', background: '#ecfdf5', cursor: 'default' }}>
             <div className={styles.checkIcon}>
-               <CheckCircle2 size={24} color="#10b981" />
+              <CheckCircle2 size={24} color="#10b981" />
             </div>
             <div>
               <h4 style={{ margin: '0 0 4px 0', color: '#065f46', fontSize: '0.95rem', fontWeight: 600 }}>Tudo em dia!</h4>
@@ -86,9 +79,9 @@ export default async function DashboardReminders() {
         ) : (
           alerts.map(alert => (
             <Link href={alert.link} key={alert.id} style={{ textDecoration: 'none' }}>
-              <div 
-                className={styles.insightItem} 
-                style={{ 
+              <div
+                className={styles.insightItem}
+                style={{
                   cursor: 'pointer',
                   background: alert.type === 'danger' ? '#fef2f2' : alert.type === 'warning' ? '#fffbeb' : '#eff6ff',
                   borderColor: alert.type === 'danger' ? '#fecaca' : alert.type === 'warning' ? '#fde68a' : '#bfdbfe',

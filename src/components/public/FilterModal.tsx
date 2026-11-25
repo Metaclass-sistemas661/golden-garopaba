@@ -3,7 +3,7 @@ import { X, SlidersHorizontal, CalendarDays, Tag, Building2, ChevronDown, Chevro
 import styles from './FilterModal.module.css'
 
 export interface FilterState {
-  transactionType: 'Alugar' | 'Comprar' | 'Lancamentos'
+  transactionType: 'Alugar' | 'Comprar' | 'Lancamentos' | 'Todos'
   searchTerm: string
   propertyCode: string
   category: 'Residencial' | 'Comercial' | 'Rural' | ''
@@ -25,7 +25,7 @@ interface FilterModalProps {
   currentFilters: FilterState
   onApply: (filters: FilterState) => void
   totalResults: number
-  mode?: 'SALE' | 'RENT' | 'LANCAMENTO'
+  mode?: 'SALE' | 'RENT' | 'LANCAMENTO' | 'ALL'
 }
 
 const PROPERTY_CATEGORIES = {
@@ -74,24 +74,32 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
   const [localFilters, setLocalFilters] = useState<FilterState>(currentFilters)
   const [showMoreOptions, setShowMoreOptions] = useState(false)
 
-  // Lock scroll background via position fixed on body
+  // Lock scroll background via position fixed on body (com cleanup seguro no unmount)
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${window.scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflowY = 'scroll';
-    } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflowY = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
-      }
+    if (!isOpen) return
+
+    const savedScrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${savedScrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflowY = 'scroll'
+    document.documentElement.classList.add('lenis-stopped')
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
     }
-  }, [isOpen])
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflowY = ''
+      document.documentElement.classList.remove('lenis-stopped')
+      window.scrollTo(0, savedScrollY)
+    }
+  }, [isOpen, onClose])
 
   useEffect(() => {
     if (isOpen) {
@@ -193,8 +201,18 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
           
           {/* Main Tabs */}
           <div className={styles.mainTabsContainer}>
-            {mode !== 'SALE' && mode !== 'LANCAMENTO' && (
+            {mode === 'ALL' && (
+              <button
+                type="button"
+                className={`${styles.mainTabBtn} ${localFilters.transactionType === 'Todos' ? styles.activeMainTab : ''}`}
+                onClick={() => setLocalFilters({...localFilters, transactionType: 'Todos'})}
+              >
+                <SlidersHorizontal size={18} /> Todos
+              </button>
+            )}
+            {(mode === 'ALL' || mode === 'RENT' || !mode) && (
               <button 
+                type="button"
                 className={`${styles.mainTabBtn} ${localFilters.transactionType === 'Alugar' ? styles.activeMainTab : ''}`}
                 onClick={() => setLocalFilters({...localFilters, transactionType: 'Alugar'})}
               >
@@ -202,8 +220,9 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
               </button>
             )}
             
-            {mode !== 'RENT' && mode !== 'LANCAMENTO' && (
+            {(mode === 'ALL' || mode === 'SALE' || !mode) && (
               <button 
+                type="button"
                 className={`${styles.mainTabBtn} ${localFilters.transactionType === 'Comprar' ? styles.activeMainTab : ''}`}
                 onClick={() => setLocalFilters({...localFilters, transactionType: 'Comprar'})}
               >
@@ -211,8 +230,9 @@ export default function FilterModal({ isOpen, onClose, currentFilters, onApply, 
               </button>
             )}
 
-            {mode !== 'RENT' && (
+            {(mode === 'ALL' || mode === 'SALE' || mode === 'LANCAMENTO' || !mode) && (
               <button 
+                type="button"
                 className={`${styles.mainTabBtn} ${localFilters.transactionType === 'Lancamentos' ? styles.activeMainTab : ''}`}
                 onClick={() => setLocalFilters({...localFilters, transactionType: 'Lancamentos'})}
               >

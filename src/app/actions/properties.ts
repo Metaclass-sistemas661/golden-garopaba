@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { validateAndSanitizeAddress } from '@/utils/addressValidation'
+import { requireAdminAuth } from '@/lib/auth'
+import { sanitizeRichHtml } from '@/utils/propertyDisplay'
 
 // ============================================================================
 // Enterprise-Grade Geocoding with retry, validation and detailed logging
@@ -216,6 +218,8 @@ function mapPrismaError(err: unknown): string {
 
 export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: string) {
   try {
+    await requireAdminAuth()
+
     // ========================================================================
     // Validação de campos obrigatórios e enums (server-side)
     // ========================================================================
@@ -340,7 +344,7 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
       city:         addr.city,
       state:        addr.state,
       zipCode:      addr.zipCode,
-      description: data.description || '',
+      description: sanitizeRichHtml(data.description || ''),
       price: priceNums.price ?? 0,
       rentPrice: priceNums.rentPrice,
       condoPrice: priceNums.condoPrice,
@@ -380,9 +384,11 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
     
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
+    if (isEdit && id) revalidatePath(`/imoveis/${id}`)
     return { success: true }
   } catch (error: unknown) {
     const err = error as Record<string, unknown> | Error;
@@ -396,12 +402,15 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
 
 export async function deleteProperty(id: string) {
   try {
+    await requireAdminAuth()
     await prisma.property.delete({ where: { id } })
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
+    revalidatePath(`/imoveis/${id}`)
     return { success: true }
   } catch {
     return { success: false }
@@ -410,15 +419,18 @@ export async function deleteProperty(id: string) {
 
 export async function togglePropertyStatus(id: string, currentStatus: string) {
   try {
+    await requireAdminAuth()
     await prisma.property.update({
       where: { id },
       data: { status: currentStatus === 'AVAILABLE' ? 'SOLD' : 'AVAILABLE' }
     })
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
+    revalidatePath(`/imoveis/${id}`)
     return { success: true }
   } catch {
     return { success: false }
@@ -435,6 +447,7 @@ export async function togglePropertyStatus(id: string, currentStatus: string) {
  */
 export async function geocodeSingleProperty(propertyId: string) {
   try {
+    await requireAdminAuth()
     const property = await prisma.property.findUnique({
       where: { id: propertyId },
       select: { id: true, location: true, latitude: true, longitude: true }
@@ -478,6 +491,7 @@ export async function geocodeSingleProperty(propertyId: string) {
  */
 export async function geocodeAllProperties() {
   try {
+    await requireAdminAuth()
     // Busca propriedades sem coordenadas
     const propertiesWithoutCoords = await prisma.property.findMany({
       where: {
@@ -571,6 +585,7 @@ export async function geocodeAllProperties() {
  */
 export async function getGeocodingStats() {
   try {
+    await requireAdminAuth()
     const totalProperties = await prisma.property.count()
     const withCoords = await prisma.property.count({
       where: {

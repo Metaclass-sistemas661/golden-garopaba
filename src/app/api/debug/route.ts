@@ -1,20 +1,28 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const mode = searchParams.get('mode') || 'overview';
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const mode = searchParams.get('mode') || 'overview'
 
   try {
     if (mode === 'overview') {
       const properties = await prisma.property.findMany({
         select: { id: true, title: true, code: true, featured: true, status: true, location: true, latitude: true, longitude: true, transactionType: true }
-      });
+      })
 
-      const withCoords = properties.filter(p => p.latitude !== null && p.longitude !== null);
-      const withoutCoords = properties.filter(p => p.latitude === null || p.longitude === null);
+      const withCoords = properties.filter(p => p.latitude !== null && p.longitude !== null)
+      const withoutCoords = properties.filter(p => p.latitude === null || p.longitude === null)
 
       return NextResponse.json({
         total: properties.length,
@@ -35,54 +43,51 @@ export async function GET(request: Request) {
           longitude: p.longitude,
           transactionType: p.transactionType
         }))
-      });
+      })
     }
 
     if (mode === 'test-geocoding') {
-      const address = searchParams.get('address') || 'Garopaba, SC, Brasil';
-      const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      
+      const address = searchParams.get('address') || 'Garopaba, SC, Brasil'
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
       if (!apiKey) {
-        return NextResponse.json({ error: 'API Key não configurada' }, { status: 500 });
+        return NextResponse.json({ error: 'API Key não configurada' }, { status: 500 })
       }
 
-      const encodedAddress = encodeURIComponent(address);
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&region=br&language=pt-BR`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      
+      const encodedAddress = encodeURIComponent(address)
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&region=br&language=pt-BR`
+
+      const response = await fetch(url)
+      const data = await response.json()
+
       return NextResponse.json({
         input: address,
         apiKeyPresent: !!apiKey,
-        apiKeyPrefix: apiKey.substring(0, 10) + '...',
         geocodingResult: data
-      });
+      })
     }
 
     if (mode === 'schema-check') {
-      // Verify columns exist by querying with them
       try {
         const sample = await prisma.property.findFirst({
           select: { id: true, latitude: true, longitude: true }
-        });
+        })
         return NextResponse.json({
           columnsExist: true,
           sample: sample || 'No properties found',
           message: 'Colunas latitude/longitude existem no banco'
-        });
+        })
       } catch (err) {
         return NextResponse.json({
           columnsExist: false,
           error: err instanceof Error ? err.message : String(err),
-          message: '❌ Colunas latitude/longitude NÃO existem! Execute a migration 0012.'
-        }, { status: 500 });
+          message: 'Colunas latitude/longitude não encontradas.'
+        }, { status: 500 })
       }
     }
 
-    return NextResponse.json({ error: 'Mode inválido. Use: overview, test-geocoding, schema-check' });
+    return NextResponse.json({ error: 'Mode inválido. Use: overview, test-geocoding, schema-check' }, { status: 400 })
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 })
   }
 }
-

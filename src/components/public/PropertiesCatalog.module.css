@@ -395,19 +395,28 @@
 }
 
 @media (max-width: 1024px) {
-  .topBar {
+  .topbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
+
+  .controlsRow {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 }
 
 @media (max-width: 768px) {
+  .catalogWrapper {
+    padding: 150px 1rem 4rem 1rem;
+  }
+
   .propertyGrid {
     grid-template-columns: 1fr;
   }
-  
-  .topBar h1 {
-    font-size: 1.5rem;
+
+  .catalogHeader h1 {
+    font-size: 2.1rem;
   }
 }

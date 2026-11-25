@@ -1,29 +1,67 @@
 "use client"
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './Footer.module.css'
+import { buildWhatsappUrl } from '@/utils/propertyDisplay'
 
 export default function Footer() {
+  const ctaRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
+
+  // Carrega o vídeo de 11MB apenas quando o usuário rolar próximo ao rodapé
+  useEffect(() => {
+    const el = ctaRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setShouldLoadVideo(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShouldLoadVideo(true)
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+              void videoRef.current.play().catch(() => {})
+            }
+          } else if (videoRef.current && !videoRef.current.paused) {
+            videoRef.current.pause()
+          }
+        }
+      },
+      { rootMargin: '300px' }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const whatsappContactUrl = buildWhatsappUrl('Olá, gostaria de falar com um corretor!')
+  const whatsappDirectUrl = buildWhatsappUrl('')
+
   return (
     <section className={styles.bottomUnifiedWrapper}>
-      
+
       {/* CTA Video Section */}
-      <div className={styles.ctaSection}>
-        <video 
-          className={styles.ctaVideo} 
-          autoPlay 
-          loop 
-          muted 
+      <div className={styles.ctaSection} ref={ctaRef}>
+        <video
+          ref={videoRef}
+          className={styles.ctaVideo}
+          src={shouldLoadVideo ? "/VIDEO-CTA.mp4" : undefined}
+          preload="none"
+          autoPlay={shouldLoadVideo}
+          loop
+          muted
           playsInline
-        >
-          <source src="/VIDEO-CTA.mp4" type="video/mp4" />
-        </video>
-        
+        />
+
         <div className={styles.ctaGlassBox}>
           <h2>O Seu Novo Lar Está Aqui.</h2>
           <p>Fale com nossa equipe e receba um atendimento personalizado para encontrar o seu imóvel ideal.</p>
-          <a href="https://wa.me/5548996435501?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" target="_blank" rel="noopener noreferrer" className={styles.ctaButton}>
+          <a href={whatsappContactUrl} target="_blank" rel="noopener noreferrer" className={styles.ctaButton}>
             Falar com Corretor Agora
           </a>
         </div>
@@ -32,7 +70,7 @@ export default function Footer() {
       {/* Footer Section */}
       <footer className={styles.footerSection}>
         <div className={styles.footerContainer}>
-          
+
           <div className={styles.footerBrand} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <Link href="/" className={styles.footerLogo}>
               <Image src="/logo00.png" alt="Golden Garopaba" width={150} height={150} style={{ objectFit: 'contain' }} />
@@ -50,7 +88,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <span className={styles.contactLabel}>Telefone / WhatsApp</span>
-                  <a href="https://wa.me/5548996435501" target="_blank" rel="noopener noreferrer">+55 (48) 99643-5501</a>
+                  <a href={whatsappDirectUrl} target="_blank" rel="noopener noreferrer">+55 (48) 99643-5501</a>
                 </li>
                 <li>
                   <span className={styles.contactLabel}>Endereço</span>
@@ -80,17 +118,18 @@ export default function Footer() {
           </div>
 
         </div>
-        
+
         <div className={styles.footerBottom}>
           <p>&copy; {new Date().getFullYear()} Golden Garopaba por Rafael Jesse. Todos os direitos reservados.</p>
         </div>
       </footer>
 
       {/* Floating WhatsApp Button */}
-      <a 
-        href="https://wa.me/5548996435501?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20corretor!" 
-        target="_blank" 
+      <a
+        href={whatsappContactUrl}
+        target="_blank"
         rel="noopener noreferrer"
+        aria-label="Falar no WhatsApp"
         style={{
           position: 'fixed',
           bottom: '30px',

@@ -1,10 +1,11 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache, updateTag } from 'next/cache'
+import { requireAdminAuth } from '@/lib/auth'
 
-export async function getSettings() {
-  try {
+const fetchCachedSettings = unstable_cache(
+  async () => {
     let settings = await prisma.systemSettings.findUnique({
       where: { id: 'singleton' }
     })
@@ -14,8 +15,16 @@ export async function getSettings() {
         data: { id: 'singleton' }
       })
     }
-    
+
     return settings
+  },
+  ['system-settings-singleton'],
+  { revalidate: 300, tags: ['system-settings'] }
+)
+
+export async function getSettings() {
+  try {
+    return await fetchCachedSettings()
   } catch (error) {
     console.error('Error fetching settings:', error)
     return null
@@ -24,6 +33,8 @@ export async function getSettings() {
 
 export async function updateSettings(data: Partial<import('@prisma/client').SystemSettings> & Record<string, unknown>) {
   try {
+    await requireAdminAuth()
+
     const payload = {
       companyName: data.companyName,
       companyLegalName: data.companyLegalName,
@@ -49,13 +60,13 @@ export async function updateSettings(data: Partial<import('@prisma/client').Syst
       }
     })
 
+    updateTag('system-settings')
     revalidatePath('/painel/configuracoes')
-    // Pode ser necessário revalidar rotas públicas também
     revalidatePath('/', 'layout')
-    
+
     return { success: true }
   } catch (error: unknown) {
-    const err = error as Error;
+    const err = error as Error
     console.error('Error updating settings:', err)
     return { success: false, error: err.message || 'Erro ao salvar configurações.' }
   }

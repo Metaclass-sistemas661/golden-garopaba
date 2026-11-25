@@ -2,12 +2,11 @@
 
 export const formatCurrency = (val: string | number | undefined | null) => {
   if (val === undefined || val === null || val === '') return ''
-  
-  // Se for string, tenta limpar primeiro
+
   const numericVal = typeof val === 'string' ? Number(val.replace(/\D/g, '')) / 100 : Number(val)
-  
+
   if (isNaN(numericVal)) return ''
-  
+
   return numericVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
@@ -28,4 +27,17 @@ export const parseCurrencyToNumber = (val: string | number) => {
 
 export const formatNumberInput = (value: string) => {
   return value.replace(/\D/g, '')
+}
+
+/**
+ * Permite números inteiros ou decimais com vírgula/ponto (ex: áreas em m²).
+ */
+export const formatDecimalInput = (value: string) => {
+  const cleaned = value.replace(/[^\d.,]/g, '')
+  const sepIndex = cleaned.search(/[.,]/)
+  if (sepIndex === -1) return cleaned
+  const intPart = cleaned.slice(0, sepIndex)
+  const sep = cleaned[sepIndex]
+  const decPart = cleaned.slice(sepIndex + 1).replace(/[.,]/g, '').slice(0, 2)
+  return `${intPart}${sep}${decPart}`
 }

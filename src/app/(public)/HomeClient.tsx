@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -12,10 +12,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import styles from './page.module.css'
 import CustomSelect from '@/components/public/CustomSelect'
 import TiltImage from "@/components/public/TiltImage"
+import SmartImage from "@/components/common/SmartImage"
+import { formatPropertyPriceLabel, getTransactionTagLabel } from '@/utils/propertyDisplay'
 
 import { PropertyDTO } from '@/types/dto'
 
-// Registra o plugin de scroll
 gsap.registerPlugin(ScrollTrigger)
 
 interface HomeClientProps {
@@ -25,17 +26,45 @@ interface HomeClientProps {
 export default function HomeClient({ featuredProperties }: HomeClientProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const propertyGridRef = useRef<HTMLDivElement>(null)
-  const [openFaq, setOpenFaq] = useState<number | null>(0); // Primeiro item aberto por padrão
+  const globeVideoRef = useRef<HTMLVideoElement>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [shouldLoadGlobeVideo, setShouldLoadGlobeVideo] = useState(false)
 
+  // Carrega e reproduz o vídeo institucional apenas quando estiver próximo da viewport
+  useEffect(() => {
+    const videoEl = globeVideoRef.current
+    if (!videoEl || typeof IntersectionObserver === 'undefined') {
+      setShouldLoadGlobeVideo(true)
+      return
+    }
 
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShouldLoadGlobeVideo(true)
+            if (videoEl.readyState >= 2) {
+              void videoEl.play().catch(() => {})
+            }
+          } else if (!videoEl.paused) {
+            videoEl.pause()
+          }
+        }
+      },
+      { rootMargin: '250px' }
+    )
+
+    observer.observe(videoEl)
+    return () => observer.disconnect()
+  }, [])
 
   const scrollPropertyGrid = (direction: 'left' | 'right') => {
     if (propertyGridRef.current) {
-      const { current } = propertyGridRef;
-      const scrollAmount = current.clientWidth * 0.85;
-      current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+      const { current } = propertyGridRef
+      const scrollAmount = current.clientWidth * 0.85
+      current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' })
     }
-  };
+  }
 
   const faqData = [
     {
@@ -54,204 +83,154 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
       question: "A imobiliária oferece suporte com a papelada?",
       answer: "Sim! Contamos com suporte jurídico e administrativo completo. Nosso objetivo é garantir total segurança e conformidade na sua compra ou locação, sem dores de cabeça."
     }
-  ];
+  ]
 
   const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
+    setOpenFaq(openFaq === index ? null : index)
+  }
 
-  const [transactionType, setTransactionType] = useState('comprar');
-  const [location, setLocation] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const router = useRouter();
+  const [transactionType, setTransactionType] = useState('comprar')
+  const [location, setLocation] = useState('')
+  const [propertyType, setPropertyType] = useState('')
+  const [priceRange, setPriceRange] = useState('')
+  const router = useRouter()
 
   const handleQuickSearch = () => {
-    const params = new URLSearchParams();
-    if (location) params.append('loc', location);
-    if (propertyType) params.append('type', propertyType);
-    if (priceRange) params.append('price', priceRange);
-    
-    let basePath = '/imoveis/comprar';
-    if (transactionType === 'alugar') basePath = '/imoveis/alugar';
-    else if (transactionType === 'lancamentos') basePath = '/lancamentos';
-    
-    router.push(`${basePath}?${params.toString()}`);
-  };
+    const params = new URLSearchParams()
+    if (location.trim()) params.append('loc', location.trim())
+    if (propertyType) params.append('type', propertyType)
+    if (priceRange) params.append('price', priceRange)
+
+    let basePath = '/imoveis/comprar'
+    if (transactionType === 'alugar') basePath = '/imoveis/alugar'
+    else if (transactionType === 'lancamentos') basePath = '/lancamentos'
+
+    const query = params.toString()
+    router.push(query ? `${basePath}?${query}` : basePath)
+  }
 
   useGSAP(() => {
-    // 1. Hero Search Bar Fade In (Mantém a entrada principal limpa, mas mais lenta e densa)
-    gsap.fromTo('.searchContainerRef', 
-      { opacity: 0, y: 80, scale: 0.98 }, 
-      { opacity: 1, y: 0, scale: 1, duration: 1.5, delay: 0.8, ease: 'power4.out' }
-    );
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    // 2. Global Network Section (Revelação Pesada com Scrubbing Parallax)
+    if (prefersReducedMotion) return
+
+    gsap.fromTo('.searchContainerRef',
+      { opacity: 0, y: 24 },
+      { opacity: 1, y: 0, duration: 0.45, delay: 0.05, ease: 'power3.out' }
+    )
+
     gsap.fromTo('.globalNetworkRef',
-      { opacity: 0, y: 150, scale: 0.95 },
+      { opacity: 0, y: 32 },
       {
-        opacity: 1, 
+        opacity: 1,
         y: 0,
-        scale: 1,
+        duration: 0.55,
         ease: 'power3.out',
         scrollTrigger: {
           trigger: '.globalNetworkRef',
-          start: 'top 90%', 
-          end: 'top 50%',
-          scrub: 1.5, // Animação amarrada ao scroll com inércia de 1.5s (pesado)
+          start: 'top 88%',
+          once: true,
         }
       }
-    );
+    )
 
-    // 3. Featured Properties Header (Surgindo de forma dramática)
     gsap.fromTo('.featuredHeaderRef',
-      { opacity: 0, y: 100, rotateX: 10 },
+      { opacity: 0, y: 24 },
       {
         opacity: 1,
         y: 0,
-        rotateX: 0,
-        duration: 1.5,
-        ease: 'expo.out',
+        duration: 0.5,
+        ease: 'power3.out',
         scrollTrigger: {
           trigger: '.featuredSectionRef',
-          start: 'top 80%'
+          start: 'top 85%',
+          once: true,
         }
       }
-    );
+    )
 
-    // 4. Property Cards Stagger (Impacto visual agressivo nos cards de imóveis)
     gsap.fromTo('.propertyCardRef',
-      { opacity: 0, y: 200, scale: 0.9 },
+      { opacity: 0, y: 36, scale: 0.98 },
       {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 1.8,
-        ease: 'power4.out',
-        stagger: 0.3, // Atraso longo para um "surgir" dramático
+        duration: 0.55,
+        ease: 'power3.out',
+        stagger: 0.08,
         scrollTrigger: {
           trigger: '.propertyGridRef',
-          start: 'top 85%',
+          start: 'top 88%',
+          once: true,
         }
       }
-    );
+    )
 
-    // 5. 3D Experience Section (O Bloco inteiro ganha forma do fundo)
     gsap.fromTo('.experienceSectionRef',
-      { opacity: 0, y: 200, scale: 0.95 },
+      { opacity: 0, y: 32 },
       {
         opacity: 1,
         y: 0,
-        scale: 1,
+        duration: 0.55,
         ease: 'power3.out',
         scrollTrigger: {
           trigger: '.experienceSectionRef',
-          start: 'top 95%',
-          end: 'top 40%',
-          scrub: 2, // Extremamente amarrado à rolagem (sensação de peso)
+          start: 'top 88%',
+          once: true,
         }
       }
-    );
+    )
 
-    // 6. Experience Texts Stagger (Os textos desabrocham pesadamente)
     gsap.fromTo('.expTextStagger',
-      { opacity: 0, y: 80, x: 30 },
+      { opacity: 0, y: 20 },
       {
         opacity: 1,
         y: 0,
-        x: 0,
-        duration: 1.2,
-        ease: 'expo.out',
-        stagger: 0.2,
+        duration: 0.45,
+        ease: 'power3.out',
+        stagger: 0.07,
         scrollTrigger: {
           trigger: '.experienceContentRef',
-          start: 'top 70%'
+          start: 'top 82%',
+          once: true,
         }
       }
-    );
-
-    // 7. Features Section (Nova Seção de Benefícios - Textos Parallax Scrub)
-    gsap.fromTo('.featuresTextRef > *',
-      { opacity: 0, y: 100 },
-      {
-        opacity: 1,
-        y: 0,
-        ease: 'power4.out',
-        stagger: 0.2, // O título e o parágrafo sobem separadamente
-        scrollTrigger: {
-          trigger: '.featuresSectionRef',
-          start: 'top 90%',
-          end: 'top 40%',
-          scrub: 1.5, // Parallax ativado com inércia de 1.5s
-        }
-      }
-    );
+    )
 
     gsap.fromTo('.featureCardRef',
-      { opacity: 0, y: 50, scale: 0.9 },
+      { opacity: 0, y: 24, scale: 0.97 },
       {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 1,
-        ease: 'back.out(1.7)',
-        stagger: 0.2,
+        duration: 0.45,
+        ease: 'power3.out',
+        stagger: 0.08,
         scrollTrigger: {
           trigger: '.featuresSectionRef',
-          start: 'top 70%'
+          start: 'top 82%',
+          once: true,
         }
       }
-    );
+    )
 
-    // 8. FAQ Section
     gsap.fromTo('.faqHeaderRef',
-      { opacity: 0, y: 50 },
+      { opacity: 0, y: 24 },
       {
         opacity: 1,
         y: 0,
-        duration: 1.2,
+        duration: 0.5,
         ease: 'power3.out',
         scrollTrigger: {
           trigger: '.faqSectionRef',
-          start: 'top 80%'
+          start: 'top 85%',
+          once: true,
         }
       }
-    );
-
-    gsap.fromTo('.faqItemRef',
-      { opacity: 0, x: -50 },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 1,
-        ease: 'power4.out',
-        stagger: 0.15,
-        scrollTrigger: {
-          trigger: '.faqSectionRef',
-          start: 'top 75%',
-          end: 'top 30%',
-          scrub: 1, // Efeito parallax amarrado ao scroll
-        }
-      }
-    );
-
-    // 9. CTA Section (Vídeo)
-    gsap.fromTo('.ctaGlassBoxRef',
-      { opacity: 0, scale: 0.9, y: 30 },
-      {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        duration: 1.2,
-        ease: 'back.out(1.5)',
-        scrollTrigger: {
-          trigger: '.ctaSectionRef',
-          start: 'top 80%'
-        }
-      }
-    );
-
-  }, { scope: containerRef });
+    )
+  }, { scope: containerRef })
 
   return (
     <main className={styles.main} ref={containerRef}>
@@ -260,13 +239,15 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
         {/* Background Image */}
         <div className={styles.videoBackground}>
           <div className={styles.videoOverlay} style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%)' }}></div>
-          <Image 
-            src="/herosection-casa.jpeg" 
-            alt="Golden Garopaba Imóveis" 
-            fill 
-            className={styles.heroVideo} // reaproveitando a classe para manter o object-fit e fullscreen
-            style={{ objectFit: 'cover' }}
+          <Image
+            src="/herosection-casa.jpeg"
+            alt="Golden Garopaba Imóveis"
+            fill
             priority
+            quality={80}
+            sizes="100vw"
+            className={styles.heroVideo}
+            style={{ objectFit: 'cover' }}
           />
         </div>
 
@@ -283,9 +264,9 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
         {/* Floating Search Bar */}
         <div className={`${styles.floatingSearchContainer} searchContainerRef`}>
           <div className={styles.searchBar}>
-            
+
             <div className={styles.searchField}>
-              <CustomSelect 
+              <CustomSelect
                 label="NEGÓCIO"
                 defaultValue={transactionType}
                 onChange={setTransactionType}
@@ -296,24 +277,26 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                 ]}
               />
             </div>
-            
+
             <div className={styles.searchDivider}></div>
 
             <div className={styles.searchField}>
-              <label className={styles.searchLabel}>LOCALIZAÇÃO</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Garopaba, SC" 
+              <label className={styles.searchLabel} htmlFor="quick-search-location">LOCALIZAÇÃO</label>
+              <input
+                id="quick-search-location"
+                type="text"
+                placeholder="Ex: Garopaba, SC"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className={styles.searchInput} 
+                onKeyDown={(e) => { if (e.key === 'Enter') handleQuickSearch() }}
+                className={styles.searchInput}
               />
             </div>
-            
+
             <div className={styles.searchDivider}></div>
-            
+
             <div className={styles.searchField}>
-              <CustomSelect 
+              <CustomSelect
                 label="TIPO"
                 defaultValue=""
                 onChange={setPropertyType}
@@ -321,6 +304,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                   { value: '', label: 'Qualquer' },
                   { value: 'Casa', label: 'Casa' },
                   { value: 'Casa de Condomínio', label: 'Casa de Condomínio' },
+                  { value: 'Sobrado', label: 'Sobrado' },
                   { value: 'Apartamento', label: 'Apartamento' },
                   { value: 'Cobertura', label: 'Cobertura' },
                   { value: 'Terreno', label: 'Terreno' },
@@ -328,11 +312,11 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                 ]}
               />
             </div>
-            
+
             <div className={styles.searchDivider}></div>
-            
+
             <div className={styles.searchField}>
-              <CustomSelect 
+              <CustomSelect
                 label="VALOR"
                 defaultValue=""
                 onChange={setPriceRange}
@@ -348,14 +332,18 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                 ]}
               />
             </div>
-            
-            <button type="button" className={styles.searchButton} onClick={handleQuickSearch}>
+
+            <button
+              type="button"
+              className={styles.searchButton}
+              onClick={handleQuickSearch}
+              aria-label="Buscar imóveis"
+            >
               <Search size={24} color="white" strokeWidth={1.5} />
             </button>
           </div>
         </div>
       </section>
-
 
       {/* Global Network Section */}
       <section className={`${styles.globalNetworkSection} globalNetworkRef`}>
@@ -366,10 +354,10 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <p className={styles.globalDescription}>
               Nascemos com um propósito claro: conectar você ao seu imóvel ideal. Nosso compromisso e profundo conhecimento local garantem que sua experiência de compra ou aluguel em Garopaba e região seja transparente, segura e eficiente do início ao fim.
             </p>
-            
-            <a href="#" className={styles.globalLink}>
+
+            <Link href="/sobre" className={styles.globalLink}>
               Conheça Garopaba <ArrowRight size={24} className={styles.globalLinkIcon} />
-            </a>
+            </Link>
 
             <div className={styles.globalStats}>
               <div className={styles.statItem}>
@@ -390,14 +378,16 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
               </div>
             </div>
           </div>
-          
+
           <div className={styles.globalNetworkVideo}>
-            <video 
-              src="/VIDEOSEÇÃO2.mp4" 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
+            <video
+              ref={globeVideoRef}
+              src={shouldLoadGlobeVideo ? "/VIDEOSEÇÃO2.mp4" : undefined}
+              preload="none"
+              autoPlay={shouldLoadGlobeVideo}
+              loop
+              muted
+              playsInline
               disablePictureInPicture
               controlsList="nodownload nofullscreen noremoteplayback"
               className={styles.globeVideo}
@@ -414,52 +404,39 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
               <h2 className={styles.featuredTitle}>Imóveis em Destaque</h2>
             </div>
             <div className={styles.carouselControls}>
-              <button onClick={() => scrollPropertyGrid('left')} className={styles.carouselBtn} aria-label="Anterior">
+              <button type="button" onClick={() => scrollPropertyGrid('left')} className={styles.carouselBtn} aria-label="Anterior">
                 <ChevronLeft size={24} />
               </button>
-              <button onClick={() => scrollPropertyGrid('right')} className={styles.carouselBtn} aria-label="Próximo">
+              <button type="button" onClick={() => scrollPropertyGrid('right')} className={styles.carouselBtn} aria-label="Próximo">
                 <ChevronRight size={24} />
               </button>
             </div>
           </div>
-          
+
           <div className={`${styles.propertyGrid} propertyGridRef`} ref={propertyGridRef}>
-            {featuredProperties.map(property => (
+            {featuredProperties.map((property) => (
               <Link href={`/imoveis/${property.id}`} key={property.id} className={`${styles.propertyCard} propertyCardRef`}>
                 <div className={styles.cardImageWrapper} style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <Image 
-                    src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.jpg'} 
-                    alt={property.title} 
-                    className={styles.cardImage} 
+                  <SmartImage
+                    src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.svg'}
+                    alt={property.title}
+                    className={styles.cardImage}
                     fill
-                    unoptimized
-                    style={{objectFit:'cover'}}
+                    quality={80}
+                    sizes="(max-width: 1024px) 85vw, 33vw"
+                    style={{ objectFit: 'cover' }}
                   />
                   <div className={styles.cardOverlay}></div>
                 </div>
                 <div className={styles.cardTop}>
                   <span className={styles.statusBadge}>
-                    {property.status === 'SOLD' ? 'Vendido' : property.status === 'RENTED' ? 'Alugado' : property.transactionType === 'SALE' ? 'À Venda' : property.transactionType === 'RENT' ? 'Aluguel' : 'Lançamento'}
+                    {property.status === 'SOLD' ? 'Vendido' : property.status === 'RENTED' ? 'Alugado' : getTransactionTagLabel(property.transactionType)}
                   </span>
                 </div>
-                {property.status === 'AVAILABLE' && (
+                {property.status === 'AVAILABLE' ? (
                   <div className={styles.cardBottom}>
                     <h3 className={styles.propertyPrice}>
-                      {(() => {
-                        if (property.transactionType === 'RENT') {
-                          return property.rentPrice 
-                            ? `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.rentPrice)}/mês`
-                            : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price);
-                        }
-                        // SALE ou LANCAMENTO: usa price, mas se price for 0, tenta rentPrice
-                        if (property.price > 0) {
-                          return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price);
-                        }
-                        if (property.rentPrice && property.rentPrice > 0) {
-                          return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.rentPrice)}/mês`;
-                        }
-                        return 'Sob Consulta';
-                      })()}
+                      {formatPropertyPriceLabel(property)}
                     </h3>
                     <p className={styles.propertyAddress}>{property.location}</p>
                     <div className={styles.propertyFeatures}>
@@ -468,8 +445,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                       <span className={styles.featureItem}>{property.areaTotal || 0} M²</span>
                     </div>
                   </div>
-                )}
-                {property.status !== 'AVAILABLE' && (
+                ) : (
                   <div className={styles.cardBottom}>
                     <h3 className={styles.propertyPrice} style={{ opacity: 0.7 }}>Indisponível</h3>
                   </div>
@@ -484,7 +460,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
       <section className={`${styles.experienceSection} experienceSectionRef`}>
         <div className={styles.experienceContainer}>
           <div className={styles.experienceCanvasWrapper}>
-             <TiltImage src="/images/isolated_3d_house.png" alt="3D Floor Plan" />
+            <TiltImage src="/images/isolated_3d_house.png" alt="3D Floor Plan" />
           </div>
 
           {/* Lado Direito: Textos */}
@@ -492,15 +468,15 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <span className={`${styles.experienceTagline} expTextStagger`}>
               FOCO NO CLIENTE
             </span>
-            
+
             <h2 className={`${styles.experienceTitle} expTextStagger`}>
               Opções que se Encaixam na<br /><span>Sua Vida em Garopaba</span>
             </h2>
-            
+
             <p className={`${styles.experienceDescription} expTextStagger`}>
               Nossa seleção abrange as melhores oportunidades da região. Cada propriedade é avaliada detalhadamente para garantir segurança estrutural, boa localização e o melhor custo-benefício para você e sua família.
             </p>
-            
+
             <ul className={styles.experienceList}>
               <li className="expTextStagger">
                 <span className={styles.checkIcon}>✔</span>
@@ -515,8 +491,6 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
                 Documentação 100% regularizada para uma transação sem surpresas.
               </li>
             </ul>
-
-
           </div>
         </div>
       </section>
@@ -530,7 +504,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
               A Golden Garopaba simplifica o processo de encontrar o imóvel perfeito em Santa Catarina. Com o suporte de especialistas locais, garantimos transparência, agilidade e total dedicação para as suas necessidades.
             </p>
           </div>
-          
+
           <div className={`${styles.featuresGrid} featuresGridRef`}>
             <div className={`${styles.featureCard} featureCardRef`}>
               <Headphones size={48} className={styles.featureIcon} />
@@ -563,23 +537,23 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
             <span className={styles.faqSubtitle}>FAQ</span>
             <h2>Dúvidas Frequentes? <br /><span>Comece por Aqui</span></h2>
           </div>
-          
+
           <div className={styles.faqList}>
             {faqData.map((faq, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`${styles.faqItem} faqItemRef ${openFaq === index ? styles.faqOpen : ''}`}
                 onClick={() => toggleFaq(index)}
               >
                 <div className={styles.faqQuestion}>
                   <h3>{faq.question}</h3>
-                  <button className={styles.faqToggleBtn}>
+                  <button type="button" className={styles.faqToggleBtn} aria-label={openFaq === index ? 'Fechar resposta' : 'Abrir resposta'}>
                     {openFaq === index ? <X size={24} /> : <Plus size={24} />}
                   </button>
                 </div>
-                <div 
+                <div
                   className={styles.faqAnswerWrapper}
-                  style={{ 
+                  style={{
                     maxHeight: openFaq === index ? '200px' : '0',
                     opacity: openFaq === index ? 1 : 0
                   }}
@@ -595,5 +569,5 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
       </section>
 
     </main>
-  );
+  )
 }

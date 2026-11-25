@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/auth'
 
 export interface NotificationItem {
   id: string;
@@ -12,6 +13,12 @@ export interface NotificationItem {
 }
 
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
+  try {
+    await requireAdminAuth()
+  } catch {
+    return []
+  }
+
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 

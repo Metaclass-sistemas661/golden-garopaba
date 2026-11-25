@@ -70,7 +70,3 @@ html.lenis, html.lenis body {
 .lenis.lenis-stopped {
   overflow: hidden;
 }
-
-html.lenis.lenis-smooth:not(.lenis-stopped) iframe {
-  pointer-events: none;
-}

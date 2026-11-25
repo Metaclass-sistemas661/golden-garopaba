@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, DollarSign, Target, Award } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface PerformanceProps {
   params: Promise<{
     id: string

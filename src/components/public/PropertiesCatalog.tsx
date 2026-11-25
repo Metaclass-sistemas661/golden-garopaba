@@ -2,22 +2,28 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 import styles from './PropertiesCatalog.module.css'
 import { MapPin, Bed, Bath, Maximize, Ruler, Car, BadgeCheck, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, Map } from 'lucide-react'
 import FilterModal, { FilterState } from './FilterModal'
 import { PropertyDTO } from '@/types/dto'
 import PropertiesMapView from '@/components/maps/PropertiesMapView'
+import SmartImage from '@/components/common/SmartImage'
+import {
+  formatPropertyPriceLabel,
+  getEffectivePropertyPrice,
+  getTransactionTagLabel,
+  normalizeSearchText,
+} from '@/utils/propertyDisplay'
 
 interface PropertiesCatalogProps {
-  mode: 'SALE' | 'RENT' | 'LANCAMENTO'
+  mode: 'SALE' | 'RENT' | 'LANCAMENTO' | 'ALL'
   initialProperties: PropertyDTO[]
 }
 
-export default function PropertiesCatalog({ mode, initialProperties }: PropertiesCatalogProps) {
-  // Inicializamos o filtro com o mode passado pela página
-  const initialFilters: FilterState = {
-    transactionType: mode === 'SALE' ? 'Comprar' : mode === 'RENT' ? 'Alugar' : 'Lancamentos',
+function buildInitialFilters(mode: PropertiesCatalogProps['mode']): FilterState {
+  return {
+    transactionType: mode === 'SALE' ? 'Comprar' : mode === 'RENT' ? 'Alugar' : mode === 'LANCAMENTO' ? 'Lancamentos' : 'Todos',
     searchTerm: '',
     propertyCode: '',
     category: '',
@@ -32,72 +38,66 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
     propertyTypes: [],
     amenities: []
   }
+}
 
-  // Modal State
+export default function PropertiesCatalog({ mode, initialProperties }: PropertiesCatalogProps) {
+  const searchParams = useSearchParams()
+  const initialFilters = useMemo(() => buildInitialFilters(mode), [mode])
+
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>(initialFilters)
-
-  // Lê os parâmetros da URL (da busca rápida da Home)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const loc = params.get('loc');
-    const type = params.get('type');
-    const price = params.get('price');
-    
-    if (loc || type || price) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFilters(prev => {
-        const newFilters = { ...prev };
-        if (loc) newFilters.searchTerm = loc; 
-        if (type) newFilters.propertyTypes = [type];
-        if (price) {
-          if (price === '0-500k') { newFilters.maxPrice = 500000; }
-          else if (price === '0-1m') { newFilters.maxPrice = 1000000; }
-          else if (price === '0-2m') { newFilters.maxPrice = 2000000; }
-          else if (price === '0-5') { newFilters.maxPrice = 5000000; }
-          else if (price === '5-10') { newFilters.minPrice = 5000000; newFilters.maxPrice = 10000000; }
-          else if (price === '10-20') { newFilters.minPrice = 10000000; newFilters.maxPrice = 20000000; }
-          else if (price === '20+') { newFilters.minPrice = 20000000; }
-        }
-        return newFilters;
-      });
-    }
-  }, []);
   const [isSortOpen, setIsSortOpen] = useState(false)
+  const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'recent'>('recent')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 8
   const sortRef = useRef<HTMLDivElement>(null)
 
-  // Fecha o dropdown de ordenação se clicar fora
+  const locParam = searchParams.get('loc') || ''
+  const typeParam = searchParams.get('type') || ''
+  const priceParam = searchParams.get('price') || ''
+
+  // Sincroniza filtros com query params da busca rápida
+  useEffect(() => {
+    if (!locParam && !typeParam && !priceParam) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilters((prev) => {
+      const next = { ...prev }
+      if (locParam) next.searchTerm = locParam
+      if (typeParam) next.propertyTypes = [typeParam]
+      if (priceParam) {
+        if (priceParam === '0-500k') { next.minPrice = 0; next.maxPrice = 500000 }
+        else if (priceParam === '0-1m') { next.minPrice = 0; next.maxPrice = 1000000 }
+        else if (priceParam === '0-2m') { next.minPrice = 0; next.maxPrice = 2000000 }
+        else if (priceParam === '0-5') { next.minPrice = 0; next.maxPrice = 5000000 }
+        else if (priceParam === '5-10') { next.minPrice = 5000000; next.maxPrice = 10000000 }
+        else if (priceParam === '10-20') { next.minPrice = 10000000; next.maxPrice = 20000000 }
+        else if (priceParam === '20+') { next.minPrice = 20000000; next.maxPrice = 20000000 }
+      }
+      return next
+    })
+    setCurrentPage(1)
+  }, [locParam, typeParam, priceParam])
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
         setIsSortOpen(false)
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-  
-  // Estado para ordenação
-  const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'recent'>('recent')
-  
-  // Estado para paginação
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8 // 4 per row, so 2 rows
 
-  // Função auxiliar para mudar de página com scroll para o topo
   const handlePageChange = (page: number | ((prev: number) => number)) => {
     const newPage = typeof page === 'function' ? page(currentPage) : page
     setCurrentPage(newPage)
-    // Scroll suave para o topo da página
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Lógica de Filtragem
   const filteredProperties = useMemo(() => {
     let result = [...initialProperties]
 
-    // Filtro por tipo de transação (Comprar/Alugar/Lançamentos do Modal)
     if (filters.transactionType === 'Comprar') {
       result = result.filter(p => p.transactionType === 'SALE')
     } else if (filters.transactionType === 'Alugar') {
@@ -106,22 +106,21 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
       result = result.filter(p => p.transactionType === 'LANCAMENTO')
     }
 
-    // Filtro por texto (título ou localização)
     if (filters.searchTerm) {
-      const lowerTerm = filters.searchTerm.toLowerCase()
-      result = result.filter(p => 
-        p.title.toLowerCase().includes(lowerTerm) || 
-        (p.location || '').toLowerCase().includes(lowerTerm)
-      )
+      const normalizedTerm = normalizeSearchText(filters.searchTerm)
+      result = result.filter((p) => {
+        const haystack = normalizeSearchText(
+          `${p.title} ${p.location || ''} ${p.neighborhood || ''} ${p.city || ''} ${p.code}`
+        )
+        return haystack.includes(normalizedTerm)
+      })
     }
 
-    // Filtro por Código
     if (filters.propertyCode) {
-      const code = filters.propertyCode.toLowerCase().trim()
-      result = result.filter(p => p.code.toLowerCase().includes(code))
+      const code = normalizeSearchText(filters.propertyCode)
+      result = result.filter(p => normalizeSearchText(p.code).includes(code))
     }
 
-    // Filtro por Categoria (Sempre ativo, default: Residencial)
     if (filters.category) {
       const categoryMap: Record<string, string> = {
         'Residencial': 'RESIDENTIAL',
@@ -132,26 +131,28 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
       result = result.filter(p => p.category === dbCategory)
     }
 
-    // Filtros de Preço (agora são numéricos diretos)
-    if (filters.minPrice > 0) result = result.filter(p => Number(p.price) >= filters.minPrice)
-    if (filters.maxPrice < 20000000) result = result.filter(p => Number(p.price) <= filters.maxPrice)
+    // Usa preço efetivo (lida corretamente com imóveis de Aluguel que usam rentPrice)
+    if (filters.minPrice > 0) {
+      result = result.filter(p => getEffectivePropertyPrice(p) >= filters.minPrice)
+    }
+    if (filters.maxPrice < 20000000) {
+      result = result.filter(p => getEffectivePropertyPrice(p) <= filters.maxPrice)
+    }
 
-    // Filtros de Área
-    if (filters.minArea) result = result.filter(p => Number(p.areaTotal || 0) >= parseInt(filters.minArea.replace(/\D/g, '')))
-    if (filters.maxArea) result = result.filter(p => Number(p.areaTotal || 0) <= parseInt(filters.maxArea.replace(/\D/g, '')))
+    const minAreaNum = filters.minArea ? parseInt(filters.minArea.replace(/\D/g, ''), 10) : NaN
+    const maxAreaNum = filters.maxArea ? parseInt(filters.maxArea.replace(/\D/g, ''), 10) : NaN
+    if (Number.isFinite(minAreaNum)) result = result.filter(p => Number(p.areaTotal || 0) >= minAreaNum)
+    if (Number.isFinite(maxAreaNum)) result = result.filter(p => Number(p.areaTotal || 0) <= maxAreaNum)
 
-    // Contadores
     if (filters.bedrooms) result = result.filter(p => (p.bedrooms || 0) >= filters.bedrooms!)
     if (filters.bathrooms) result = result.filter(p => (p.bathrooms || 0) >= filters.bathrooms!)
     if (filters.suites) result = result.filter(p => (p.suites || 0) >= filters.suites!)
     if (filters.parking) result = result.filter(p => (p.parkingSpaces || 0) >= filters.parking!)
 
-    // Tipos de Propriedade (OR logic se múltiplo selecionado)
     if (filters.propertyTypes.length > 0) {
       result = result.filter(p => filters.propertyTypes.includes(p.propertyType))
     }
 
-    // Comodidades (AND logic - deve ter todas as selecionadas)
     if (filters.amenities.length > 0) {
       result = result.filter(p => {
         const allAmenities = [
@@ -166,65 +167,68 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
       })
     }
 
-    // Ordenação
     if (sortBy === 'price_asc') {
-      result.sort((a, b) => Number(a.price) - Number(b.price))
+      result.sort((a, b) => getEffectivePropertyPrice(a) - getEffectivePropertyPrice(b))
     } else if (sortBy === 'price_desc') {
-      result.sort((a, b) => Number(b.price) - Number(a.price))
+      result.sort((a, b) => getEffectivePropertyPrice(b) - getEffectivePropertyPrice(a))
     } else {
-      result.sort((a, b) => (a.id > b.id ? -1 : 1))
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }
 
     return result
   }, [filters, sortBy, initialProperties])
 
-  // Lógica de Paginação
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage) || 1
+  const safePage = Math.min(currentPage, totalPages)
   const paginatedProperties = filteredProperties.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (safePage - 1) * itemsPerPage,
+    safePage * itemsPerPage
   )
 
-  const formatPrice = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-  }
-
-  // Contar quantos filtros estão ativos visualmente (ignora maxPrice=20mi e minPrice=0, e default category)
   const activeFiltersCount = Object.entries(filters).filter(([key, val]) => {
-    if (key === 'transactionType') return false; // Transação é o modo base da página
-    if (key === 'category') return false; // Categoria sempre tem uma ativa
-    if (key === 'minPrice' && val === 0) return false;
-    if (key === 'maxPrice' && val === 20000000) return false;
-    if (Array.isArray(val)) return val.length > 0;
-    if (val === null || val === '') return false;
-    return true;
-  }).length;
+    if (key === 'transactionType') return false
+    if (key === 'category') return false
+    if (key === 'minPrice' && val === 0) return false
+    if (key === 'maxPrice' && val === 20000000) return false
+    if (Array.isArray(val)) return val.length > 0
+    if (val === null || val === '') return false
+    return true
+  }).length
+
+  const headerTitle =
+    filters.transactionType === 'Comprar'
+      ? 'Imóveis para Compra'
+      : filters.transactionType === 'Alugar'
+        ? 'Imóveis para Locação'
+        : filters.transactionType === 'Lancamentos'
+          ? 'Lançamentos'
+          : 'Todos os Imóveis'
 
   return (
     <div className={styles.catalogWrapper}>
-      
+
       {/* Header do Catálogo */}
       <div className={styles.catalogHeader}>
-        <h1>{filters.transactionType === 'Comprar' ? 'Imóveis para Compra' : filters.transactionType === 'Alugar' ? 'Imóveis para Locação' : 'Lançamentos'}</h1>
+        <h1>{headerTitle}</h1>
         <p>Curadoria exclusiva das propriedades mais extraordinárias.</p>
       </div>
 
       <div className={styles.catalogLayout}>
-        {/* Main Content (Grid Ocupando Toda a Tela) */}
         <main className={styles.mainContent}>
-          
+
           {/* Topbar: Resultados, Botão de Filtro e Ordenação */}
           <div className={styles.topbar}>
-            
+
             <div className={styles.resultsCountRow}>
               <span className={styles.resultsCount}>
-                {filteredProperties.length} resultados Imóveis
+                {filteredProperties.length} {filteredProperties.length === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}
               </span>
             </div>
 
             <div className={styles.controlsRow}>
-              <button 
-                className={styles.openFilterBtn} 
+              <button
+                type="button"
+                className={styles.openFilterBtn}
                 onClick={() => setIsFilterModalOpen(true)}
               >
                 <SlidersHorizontal size={18} />
@@ -233,6 +237,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
               </button>
 
               <button
+                type="button"
                 className={styles.openMapBtn}
                 onClick={() => setIsMapOpen(true)}
               >
@@ -247,24 +252,24 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                     {sortBy === 'recent' ? 'Mais Recentes' : sortBy === 'price_desc' ? 'Maior Preço' : 'Menor Preço'}
                     <ChevronDown size={16} />
                   </div>
-                  
+
                   {isSortOpen && (
                     <div className={styles.sortOptions}>
-                      <div 
-                        className={styles.sortOption} 
-                        onClick={() => { setSortBy('recent'); setIsSortOpen(false); }}
+                      <div
+                        className={styles.sortOption}
+                        onClick={() => { setSortBy('recent'); setCurrentPage(1); setIsSortOpen(false); }}
                       >
                         Mais Recentes
                       </div>
-                      <div 
-                        className={styles.sortOption} 
-                        onClick={() => { setSortBy('price_desc'); setIsSortOpen(false); }}
+                      <div
+                        className={styles.sortOption}
+                        onClick={() => { setSortBy('price_desc'); setCurrentPage(1); setIsSortOpen(false); }}
                       >
                         Maior Preço
                       </div>
-                      <div 
-                        className={styles.sortOption} 
-                        onClick={() => { setSortBy('price_asc'); setIsSortOpen(false); }}
+                      <div
+                        className={styles.sortOption}
+                        onClick={() => { setSortBy('price_asc'); setCurrentPage(1); setIsSortOpen(false); }}
                       >
                         Menor Preço
                       </div>
@@ -273,24 +278,26 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                 </div>
               </div>
             </div>
-            
+
           </div>
 
           {/* Grid de Propriedades */}
           {paginatedProperties.length > 0 ? (
             <div className={styles.propertyGrid}>
-              {paginatedProperties.map(property => (
+              {paginatedProperties.map((property, index) => (
                 <Link href={`/imoveis/${property.id}`} key={property.id} className={styles.propertyCard}>
                   <div className={styles.cardImageWrapper}>
-                    <Image 
-                      src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.jpg'} 
-                      alt={property.title} 
+                    <SmartImage
+                      src={property.photos && property.photos.length > 0 ? property.photos[0] : '/placeholder.svg'}
+                      alt={property.title}
                       className={styles.cardImage}
                       fill
-                      unoptimized
+                      priority={index < 4}
+                      quality={75}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       style={{ objectFit: 'cover' }}
                     />
-                    <div className={styles.cardTag}>{property.transactionType === 'SALE' ? 'Venda' : property.transactionType === 'RENT' ? 'Aluguel' : 'Lançamento'}</div>
+                    <div className={styles.cardTag}>{getTransactionTagLabel(property.transactionType)}</div>
                     {property.status !== 'AVAILABLE' && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.2rem', letterSpacing: '2px', textTransform: 'uppercase' }}>
                         {property.status === 'SOLD' ? 'Vendido' : 'Alugado'}
@@ -346,11 +353,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                       )}
                     </div>
                     <div className={styles.cardPrice}>
-                      {property.transactionType === 'RENT' 
-                        ? (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta')
-                        : (Number(property.price) > 0 
-                            ? formatPrice(Number(property.price)) 
-                            : (Number(property.rentPrice) > 0 ? `${formatPrice(Number(property.rentPrice))}/mês` : 'Sob Consulta'))}
+                      {formatPropertyPriceLabel(property)}
                     </div>
                   </div>
                 </Link>
@@ -359,7 +362,7 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
           ) : (
             <div className={styles.emptyState}>
               <p>Nenhuma propriedade encontrada com os filtros selecionados.</p>
-              <button className={styles.clearBtnAlt} onClick={() => setFilters(initialFilters)}>
+              <button type="button" className={styles.clearBtnAlt} onClick={() => { setFilters(initialFilters); setCurrentPage(1); }}>
                 Limpar Filtros
               </button>
             </div>
@@ -368,19 +371,22 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
           {/* Paginação */}
           {totalPages > 1 && (
             <div className={styles.pagination}>
-              <button 
-                className={styles.pageBtn} 
+              <button
+                type="button"
+                className={styles.pageBtn}
                 onClick={() => handlePageChange(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
+                disabled={safePage === 1}
+                aria-label="Página anterior"
               >
                 <ChevronLeft size={20} />
               </button>
-              
+
               <div className={styles.pageNumbers}>
                 {Array.from({ length: totalPages }).map((_, i) => (
-                  <button 
+                  <button
+                    type="button"
                     key={i}
-                    className={`${styles.pageNumberBtn} ${currentPage === i + 1 ? styles.activePage : ''}`}
+                    className={`${styles.pageNumberBtn} ${safePage === i + 1 ? styles.activePage : ''}`}
                     onClick={() => handlePageChange(i + 1)}
                   >
                     {i + 1}
@@ -388,10 +394,12 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
                 ))}
               </div>
 
-              <button 
-                className={styles.pageBtn} 
+              <button
+                type="button"
+                className={styles.pageBtn}
                 onClick={() => handlePageChange(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
+                disabled={safePage === totalPages}
+                aria-label="Próxima página"
               >
                 <ChevronRight size={20} />
               </button>
@@ -402,13 +410,13 @@ export default function PropertiesCatalog({ mode, initialProperties }: Propertie
       </div>
 
       {/* Modal de Filtros Avançados */}
-      <FilterModal 
+      <FilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
         currentFilters={filters}
         onApply={(newFilters) => {
           setFilters(newFilters)
-          setCurrentPage(1) // Volta pra primeira página ao filtrar
+          setCurrentPage(1)
         }}
         totalResults={filteredProperties.length}
         mode={mode}

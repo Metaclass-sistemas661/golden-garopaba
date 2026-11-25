@@ -1,22 +1,24 @@
 import prisma from '@/lib/prisma'
 import ClientPage from './ClientPage'
-import { serializeProperty, serializeBroker } from '@/utils/serializers'
+import { PROPERTY_CARD_SELECT, serializePropertyCard, serializeBroker } from '@/utils/serializers'
 
-export const dynamic = 'force-dynamic' // Garante que a página sempre pegue os dados mais novos
+export const dynamic = 'force-dynamic'
 
 export default async function ImoveisPage() {
-  // Puxa todos os imóveis do banco de dados real
-  const properties = await prisma.property.findMany({
-    orderBy: { createdAt: 'desc' }
-  })
+  const [properties, brokers] = await Promise.all([
+    prisma.property.findMany({
+      select: PROPERTY_CARD_SELECT,
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.broker.findMany({
+      where: { status: 'ACTIVE' }
+    })
+  ])
 
-  const serializedProperties = properties.map(serializeProperty)
-
-  const brokers = await prisma.broker.findMany({
-    where: { status: 'ACTIVE' }
-  })
-  
-  const serializedBrokers = brokers.map(serializeBroker)
-
-  return <ClientPage initialProperties={serializedProperties} brokers={serializedBrokers} />
+  return (
+    <ClientPage
+      initialProperties={properties.map(serializePropertyCard)}
+      brokers={brokers.map(serializeBroker)}
+    />
+  )
 }

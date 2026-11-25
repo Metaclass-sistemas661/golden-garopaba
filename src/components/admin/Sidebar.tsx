@@ -43,7 +43,9 @@ export default function Sidebar() {
       <nav className={styles.nav} data-lenis-prevent="true" onWheel={(e) => e.stopPropagation()}>
         <ul className={styles.navList}>
           {menuItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = item.href === '/painel'
+              ? pathname === '/painel'
+              : pathname.startsWith(item.href)
             return (
               <li key={item.href}>
                 <Link 

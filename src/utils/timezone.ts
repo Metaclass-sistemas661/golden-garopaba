@@ -1,120 +1,93 @@
 /**
  * Timezone utilities for Brazil (America/Sao_Paulo)
- * 
- * Este módulo fornece funções robustas para lidar com conversões de timezone
- * garantindo que datas e horários sejam exibidos corretamente no horário de Brasília.
- * 
+ *
  * O banco de dados (PostgreSQL/Supabase) armazena timestamps em UTC.
- * Este módulo converte para o timezone brasileiro para exibição correta.
+ * Este módulo converte datas de/para o fuso de Brasília (UTC-3) de forma
+ * independente do timezone do servidor Node/Cloud Run.
  */
 
 const BRAZIL_TIMEZONE = 'America/Sao_Paulo'
+const BRAZIL_UTC_OFFSET_MS = 3 * 60 * 60 * 1000 // America/Sao_Paulo é UTC-3 fixo (sem horário de verão desde 2019)
 
 /**
- * Obtém a data/hora atual no timezone do Brasil
+ * Obtém componentes (ano, mês, dia, hora) da data no fuso de Brasília.
  */
+function getBrazilParts(date: Date): { year: number; month: number; day: number; hour: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BRAZIL_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value || 0)
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour') % 24,
+  }
+}
+
 export function getNowInBrazil(): Date {
   return new Date(new Date().toLocaleString('en-US', { timeZone: BRAZIL_TIMEZONE }))
 }
 
-/**
- * Converte uma data UTC para o timezone do Brasil
- * @param utcDate - Data em UTC (como vem do banco de dados)
- * @returns Date ajustada para o timezone brasileiro
- */
 export function toSaoPauloTime(utcDate: Date | string): Date {
   const date = utcDate instanceof Date ? utcDate : new Date(utcDate)
-  // Cria uma nova data baseada na representação local do timezone brasileiro
   return new Date(date.toLocaleString('en-US', { timeZone: BRAZIL_TIMEZONE }))
 }
 
-/**
- * Obtém a hora (0-23) de uma data no timezone do Brasil
- * @param utcDate - Data em UTC
- * @returns Hora no timezone brasileiro (0-23)
- */
 export function getHourInBrazil(utcDate: Date | string): number {
   const date = utcDate instanceof Date ? utcDate : new Date(utcDate)
-  return parseInt(
-    date.toLocaleString('en-US', { 
-      timeZone: BRAZIL_TIMEZONE, 
-      hour: 'numeric', 
-      hour12: false 
-    }),
-    10
-  )
+  return getBrazilParts(date).hour
 }
 
-/**
- * Obtém o início do dia atual no timezone do Brasil
- * @returns Date representando 00:00:00 de hoje em São Paulo
- */
 export function getStartOfTodayInBrazil(): Date {
-  const now = getNowInBrazil()
-  now.setHours(0, 0, 0, 0)
-  return now
+  return createBrazilDate(0, false)
 }
 
-/**
- * Obtém o início do dia de uma data específica no timezone do Brasil
- * @param utcDate - Data em UTC
- * @returns Date representando 00:00:00 daquele dia em São Paulo
- */
 export function getStartOfDayInBrazil(utcDate: Date | string): Date {
   const date = toSaoPauloTime(utcDate)
   date.setHours(0, 0, 0, 0)
   return date
 }
 
-/**
- * Formata data para exibição no padrão brasileiro
- * @param utcDate - Data em UTC
- * @param options - Opções de formatação
- * @returns String formatada
- */
 export function formatDateBrazil(
   utcDate: Date | string,
-  options: Intl.DateTimeFormatOptions = { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
+  options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   }
 ): string {
   const date = utcDate instanceof Date ? utcDate : new Date(utcDate)
-  return date.toLocaleDateString('pt-BR', { 
+  return date.toLocaleDateString('pt-BR', {
     timeZone: BRAZIL_TIMEZONE,
-    ...options 
+    ...options
   })
 }
 
-/**
- * Formata hora para exibição no padrão brasileiro
- * @param utcDate - Data em UTC
- * @returns String no formato "HH:mm"
- */
 export function formatTimeBrazil(utcDate: Date | string): string {
   const date = utcDate instanceof Date ? utcDate : new Date(utcDate)
-  return date.toLocaleTimeString('pt-BR', { 
+  return date.toLocaleTimeString('pt-BR', {
     timeZone: BRAZIL_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit'
   })
 }
 
-/**
- * Formata data e hora completos para exibição no padrão brasileiro
- * @param utcDate - Data em UTC
- * @returns String no formato "DD/MM/YYYY às HH:mm"
- */
 export function formatDateTimeBrazil(utcDate: Date | string): string {
   const date = utcDate instanceof Date ? utcDate : new Date(utcDate)
-  const dateStr = date.toLocaleDateString('pt-BR', { 
+  const dateStr = date.toLocaleDateString('pt-BR', {
     timeZone: BRAZIL_TIMEZONE,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
   })
-  const timeStr = date.toLocaleTimeString('pt-BR', { 
+  const timeStr = date.toLocaleTimeString('pt-BR', {
     timeZone: BRAZIL_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit'
@@ -122,12 +95,6 @@ export function formatDateTimeBrazil(utcDate: Date | string): string {
   return `${dateStr} às ${timeStr}`
 }
 
-/**
- * Compara se duas datas são do mesmo dia no timezone do Brasil
- * @param date1 - Primeira data (UTC)
- * @param date2 - Segunda data (UTC)
- * @returns true se ambas são do mesmo dia em São Paulo
- */
 export function isSameDayInBrazil(date1: Date | string, date2: Date | string): boolean {
   const d1 = toSaoPauloTime(date1)
   const d2 = toSaoPauloTime(date2)
@@ -138,11 +105,6 @@ export function isSameDayInBrazil(date1: Date | string, date2: Date | string): b
   )
 }
 
-/**
- * Obtém dados do dia da semana no timezone do Brasil
- * @param utcDate - Data em UTC
- * @returns Índice do dia (0=Dom, 6=Sáb) e nome abreviado
- */
 export function getDayOfWeekInBrazil(utcDate: Date | string): { index: number; name: string } {
   const date = toSaoPauloTime(utcDate)
   const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -151,28 +113,18 @@ export function getDayOfWeekInBrazil(utcDate: Date | string): { index: number; n
 }
 
 /**
- * Cria uma data no timezone do Brasil para uso em filtros
- * Útil para criar datas de início/fim para queries
- * @param daysAgo - Número de dias atrás (0 = hoje)
- * @param setToEndOfDay - Se true, define para 23:59:59, senão 00:00:00
- * @returns Date que pode ser usada em queries
+ * Cria um instante UTC exato correspondente a 00:00:00 (ou 23:59:59.999) no
+ * horário de Brasília (`daysAgo` dias atrás), funcionando igual em servidores UTC e locais.
  */
 export function createBrazilDate(daysAgo: number = 0, setToEndOfDay: boolean = false): Date {
-  const now = getNowInBrazil()
-  now.setDate(now.getDate() - daysAgo)
-  
+  const { year, month, day } = getBrazilParts(new Date())
+  const utcMidnightOfBrazilDay = Date.UTC(year, month - 1, day - daysAgo, 0, 0, 0, 0) + BRAZIL_UTC_OFFSET_MS
   if (setToEndOfDay) {
-    now.setHours(23, 59, 59, 999)
-  } else {
-    now.setHours(0, 0, 0, 0)
+    return new Date(utcMidnightOfBrazilDay + (24 * 60 * 60 * 1000 - 1))
   }
-  
-  return now
+  return new Date(utcMidnightOfBrazilDay)
 }
 
-/**
- * Retorna a string do timezone do Brasil para uso em APIs
- */
 export function getBrazilTimezone(): string {
   return BRAZIL_TIMEZONE
 }

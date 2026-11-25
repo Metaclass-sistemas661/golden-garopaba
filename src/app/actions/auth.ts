@@ -29,7 +29,7 @@ export async function login(prevState: AuthState | undefined, formData: FormData
 
   // The redirect is intentionally outside the try/catch or error check, 
   // Next.js redirect throws a specific error caught by the framework.
-  redirect('/admin')
+  redirect('/painel')
 }
 
 export async function resetPassword(prevState: AuthState | undefined, formData: FormData): Promise<AuthState> {

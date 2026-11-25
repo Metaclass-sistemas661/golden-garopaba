@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAdminAuth } from '@/lib/auth'
 
 export async function registerTransaction(data: {
   propertyId: string,
@@ -11,47 +12,65 @@ export async function registerTransaction(data: {
   transactionDate: string
 }) {
   try {
-    // Busca o corretor para pegar a porcentagem de comissão
-    const broker = await prisma.broker.findUnique({
-      where: { id: data.brokerId }
-    })
+    await requireAdminAuth()
+
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
+      return { success: false, error: 'Informe um valor de fechamento válido maior que zero.' }
+    }
+
+    const parsedDate = new Date(data.transactionDate)
+    if (Number.isNaN(parsedDate.getTime())) {
+      return { success: false, error: 'Data de transação inválida.' }
+    }
+
+    const [broker, property] = await Promise.all([
+      prisma.broker.findUnique({ where: { id: data.brokerId } }),
+      prisma.property.findUnique({ where: { id: data.propertyId }, select: { id: true } }),
+    ])
 
     if (!broker) {
       return { success: false, error: 'Corretor não encontrado' }
     }
+    if (!property) {
+      return { success: false, error: 'Imóvel não encontrado' }
+    }
 
-    // Calcula a comissão
-    const commissionPercentage = data.transactionType === 'SALE' 
-      ? Number(broker.commissionPercentageSale) 
+    const commissionPercentage = data.transactionType === 'SALE'
+      ? Number(broker.commissionPercentageSale)
       : Number(broker.commissionPercentageRent)
-      
+
     const commissionAmount = data.amount * (commissionPercentage / 100)
 
-    // Cria a transação
-    await prisma.propertyTransaction.create({
-      data: {
-        propertyId: data.propertyId,
-        brokerId: data.brokerId,
-        transactionType: data.transactionType,
-        amount: data.amount,
-        commissionAmount: commissionAmount,
-        transactionDate: new Date(data.transactionDate)
-      }
-    })
-
-    // Atualiza o status do imóvel para SOLD ou RENTED
-    await prisma.property.update({
-      where: { id: data.propertyId },
-      data: { status: data.transactionType === 'SALE' ? 'SOLD' : 'RENTED' }
-    })
+    await prisma.$transaction([
+      prisma.propertyTransaction.create({
+        data: {
+          propertyId: data.propertyId,
+          brokerId: data.brokerId,
+          transactionType: data.transactionType,
+          amount: data.amount,
+          commissionAmount,
+          transactionDate: parsedDate,
+        }
+      }),
+      prisma.property.update({
+        where: { id: data.propertyId },
+        data: { status: data.transactionType === 'SALE' ? 'SOLD' : 'RENTED' }
+      })
+    ])
 
     revalidatePath('/painel/imoveis')
     revalidatePath(`/painel/corretores/${data.brokerId}/performance`)
     revalidatePath('/painel')
-    
+    revalidatePath('/')
+    revalidatePath('/imoveis')
+    revalidatePath('/imoveis/comprar')
+    revalidatePath('/imoveis/alugar')
+    revalidatePath('/lancamentos')
+    revalidatePath(`/imoveis/${data.propertyId}`)
+
     return { success: true }
   } catch (error: unknown) {
-    const err = error as Error;
+    const err = error as Error
     console.error('Erro ao registrar transação:', err)
     return { success: false, error: err?.message || 'Erro interno.' }
   }

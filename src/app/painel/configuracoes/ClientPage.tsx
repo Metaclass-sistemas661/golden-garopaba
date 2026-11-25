@@ -1,12 +1,12 @@
 "use client"
 // Trigger rebuild for CSS module
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Save, Building2, Palette, Link as LinkIcon, ShieldCheck, UploadCloud, Copy, CheckCircle2, Loader2 } from 'lucide-react'
 import styles from './page.module.css'
 import { updateSettings } from '@/app/actions/settings'
 import { createClient } from '@/lib/supabase/client'
-import Image from 'next/image'
 import { processSingleImage, ACCEPTED_FILE_TYPES, ProcessedImage } from '@/utils/imageProcessing'
+import SmartImage from '@/components/common/SmartImage'
 
 export default function ClientPage({ initialSettings }: { initialSettings: import('@prisma/client').SystemSettings | null }) {
   const [activeTab, setActiveTab] = useState('geral')
@@ -33,7 +33,20 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
   const [logoFile, setLogoFile] = useState<ProcessedImage | null>(null)
   const [processingLogo, setProcessingLogo] = useState(false)
 
+  // Estados de alteração de senha
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+
   const supabase = createClient()
+  const logoBlobUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (logoBlobUrlRef.current) URL.revokeObjectURL(logoBlobUrlRef.current)
+    }
+  }, [])
 
   const handleCopyXML = () => {
     navigator.clipboard.writeText('https://api.garopaba.com.br/xml/zap-imoveis')
@@ -47,10 +60,12 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
     if (!file) return
     setProcessingLogo(true)
     try {
-      // Logos: preserva transparência e mantém boa resolução
       const img = await processSingleImage(file, { maxDimension: 1600, transparent: true })
+      if (logoBlobUrlRef.current) URL.revokeObjectURL(logoBlobUrlRef.current)
+      const nextBlobUrl = URL.createObjectURL(img.blob)
+      logoBlobUrlRef.current = nextBlobUrl
       setLogoFile(img)
-      setLogoUrl(URL.createObjectURL(img.blob))
+      setLogoUrl(nextBlobUrl)
     } catch (err) {
       console.error('Erro ao processar logo:', err)
       alert(`Não foi possível ler a imagem "${file.name}": ${err instanceof Error ? err.message : 'formato inválido'}`)
@@ -170,7 +185,7 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
               <div className={styles.logoSection}>
                 <div className={styles.logoPreview} style={{ position: 'relative' }}>
                   {logoUrl ? (
-                    <Image src={logoUrl} alt="Logo Oficial" fill unoptimized style={{ objectFit: 'contain' }} />
+                    <SmartImage src={logoUrl} alt="Logo Oficial" fill sizes="120px" style={{ objectFit: 'contain' }} />
                   ) : (
                     <Building2 size={48} color="#94a3b8" />
                   )}
@@ -308,18 +323,85 @@ export default function ClientPage({ initialSettings }: { initialSettings: impor
                 <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: '#1e293b' }}>Alterar Senha do Painel</h3>
                 <div className={styles.formGroup}>
                   <label>Senha Atual</label>
-                  <input type="password" />
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    placeholder="Digite sua senha atual"
+                    autoComplete="current-password"
+                  />
                 </div>
                 <div className={styles.grid2}>
                   <div className={styles.formGroup}>
                     <label>Nova Senha</label>
-                    <input type="password" />
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      autoComplete="new-password"
+                    />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Confirmar Nova Senha</label>
-                    <input type="password" />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Repita a nova senha"
+                      autoComplete="new-password"
+                    />
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className={styles.saveBtn}
+                  disabled={changingPassword}
+                  style={{ height: '42px', padding: '0 1.5rem' }}
+                  onClick={async () => {
+                    if (!currentPassword || !newPassword || !confirmPassword) {
+                      alert('Preencha a senha atual, a nova senha e a confirmação.')
+                      return
+                    }
+                    if (newPassword.length < 6) {
+                      alert('A nova senha deve ter pelo menos 6 caracteres.')
+                      return
+                    }
+                    if (newPassword !== confirmPassword) {
+                      alert('A confirmação da nova senha não confere.')
+                      return
+                    }
+                    setChangingPassword(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (!user?.email) {
+                        alert('Sessão inválida. Faça login novamente.')
+                        return
+                      }
+                      const { error: signInErr } = await supabase.auth.signInWithPassword({
+                        email: user.email,
+                        password: currentPassword,
+                      })
+                      if (signInErr) {
+                        alert('Senha atual incorreta.')
+                        return
+                      }
+                      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
+                      if (updateErr) {
+                        alert('Erro ao atualizar senha: ' + updateErr.message)
+                        return
+                      }
+                      setCurrentPassword('')
+                      setNewPassword('')
+                      setConfirmPassword('')
+                      alert('Senha alterada com sucesso!')
+                    } finally {
+                      setChangingPassword(false)
+                    }
+                  }}
+                >
+                  {changingPassword ? 'Alterando...' : 'Atualizar Senha'}
+                </button>
               </div>
             </div>
           )}

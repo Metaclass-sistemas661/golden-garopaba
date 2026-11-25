@@ -3,24 +3,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps'
 import { X, MapPin, ArrowLeft, Navigation, ExternalLink, Loader2 } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import styles from './maps.module.css'
 import GoogleMapsProvider from './GoogleMapsProvider'
 import { PropertyDTO } from '@/types/dto'
+import SmartImage from '@/components/common/SmartImage'
+import { formatBRL, getEffectivePropertyPrice } from '@/utils/propertyDisplay'
 
 interface PropertiesMapViewProps {
   isOpen: boolean
   onClose: () => void
   properties: PropertyDTO[]
-  mode: 'SALE' | 'RENT' | 'LANCAMENTO'
+  mode: 'SALE' | 'RENT' | 'LANCAMENTO' | 'ALL'
 }
 
 const GAROPABA_CENTER = { lat: -28.0275, lng: -48.6178 }
 
-const formatPrice = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value)
-}
+const formatPrice = (value: number) => formatBRL(value, 0)
 
 function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 'isOpen'>) {
   const [selectedProperty, setSelectedProperty] = useState<PropertyDTO | null>(null)
@@ -60,7 +59,8 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
   const getModeTitle = () => {
     if (mode === 'SALE') return 'Imóveis à Venda'
     if (mode === 'RENT') return 'Imóveis para Locação'
-    return 'Lançamentos'
+    if (mode === 'LANCAMENTO') return 'Lançamentos'
+    return 'Todos os Imóveis'
   }
 
   const handleGetDirections = (p: PropertyDTO) => {
@@ -102,7 +102,7 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
           <Map defaultZoom={propertiesWithCoords.length > 0 ? 12 : 13} defaultCenter={mapCenter} mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID"} mapTypeId={mapType} gestureHandling="greedy" disableDefaultUI={false} zoomControl={true} streetViewControl={false} fullscreenControl={true}>
             {propertiesWithCoords.map((property) => {
               const isActive = selectedProperty?.id === property.id
-              const price = formatPrice(Number(property.price) || Number(property.rentPrice) || 0)
+              const price = formatPrice(getEffectivePropertyPrice(property))
               return (
                 <AdvancedMarker
                   key={property.id}
@@ -173,11 +173,11 @@ function MapContent({ properties, onClose, mode }: Omit<PropertiesMapViewProps, 
           ) : (
             propertiesWithCoords.map((property) => (
               <div key={property.id} className={`${styles.propertyListItem} ${selectedProperty?.id === property.id ? styles.active : ''}`} onClick={() => setSelectedProperty(property)}>
-                <div className={styles.propertyThumb}><Image src={property.photos[0] || '/placeholder.jpg'} alt={property.title} fill style={{ objectFit: 'cover' }} unoptimized /></div>
+                <div className={styles.propertyThumb}><SmartImage src={property.photos[0] || '/placeholder.svg'} alt={property.title} fill sizes="80px" quality={75} style={{ objectFit: 'cover' }} /></div>
                 <div className={styles.propertyListInfo}>
                   <h4>{property.title}</h4>
                   <div className={styles.location}><MapPin size={12} />{property.location}</div>
-                  <div className={styles.price}>{formatPrice(Number(property.price) || Number(property.rentPrice) || 0)}</div>
+                  <div className={styles.price}>{formatPrice(getEffectivePropertyPrice(property))}</div>
                   <div className={styles.listItemActions}>
                     <button className={styles.miniActionBtn} onClick={(e) => { e.stopPropagation(); handleGetDirections(property); }} title="Rota"><Navigation size={12} /></button>
                     <button className={styles.miniActionBtn} onClick={(e) => { e.stopPropagation(); handleOpenInMaps(property); }} title="Google Maps"><ExternalLink size={12} /></button>

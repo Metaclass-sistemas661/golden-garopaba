@@ -64,7 +64,9 @@ export default function TiltImage({ src, alt }: TiltImageProps) {
         <Image 
           src={src} 
           alt={alt} 
-          fill 
+          fill
+          quality={80}
+          sizes="(max-width: 1024px) 100vw, 50vw"
           style={{ objectFit: 'contain', pointerEvents: 'none' }} 
         />
       </motion.div>

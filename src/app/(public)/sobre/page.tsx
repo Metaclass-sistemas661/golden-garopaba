@@ -33,6 +33,8 @@ export default function SobrePage() {
                   src="/corretor.png" 
                   alt="Rafael Jesse - Especialista em Imóveis Exclusivos" 
                   fill
+                  quality={80}
+                  sizes="(max-width: 768px) 100vw, 480px"
                   className={styles.brokerImage}
                 />
               </div>
