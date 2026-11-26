@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { invalidatePublicPropertyCache } from '@/lib/cacheTags'
 import { validateAndSanitizeAddress } from '@/utils/addressValidation'
 import { requireAdminAuth } from '@/lib/auth'
 import { sanitizeRichHtml } from '@/utils/propertyDisplay'
@@ -384,6 +385,7 @@ export async function saveProperty(data: PropertyPayload, isEdit: boolean, id?: 
     
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
@@ -406,6 +408,7 @@ export async function deleteProperty(id: string) {
     await prisma.property.delete({ where: { id } })
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
@@ -426,6 +429,7 @@ export async function togglePropertyStatus(id: string, currentStatus: string) {
     })
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
@@ -473,6 +477,7 @@ export async function geocodeSingleProperty(propertyId: string) {
 
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')
@@ -556,6 +561,7 @@ export async function geocodeAllProperties() {
     // Revalida todas as páginas relevantes
     revalidatePath('/painel/imoveis')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')
     revalidatePath('/lancamentos')

@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { invalidatePublicPropertyCache } from '@/lib/cacheTags'
 import { requireAdminAuth } from '@/lib/auth'
 
 // ============================================================================
@@ -151,6 +152,7 @@ export async function bulkGeocodeProperties(): Promise<BulkGeocodeResult> {
   }
 
   revalidatePath('/')
+  invalidatePublicPropertyCache()
   revalidatePath('/imoveis')
   revalidatePath('/imoveis/comprar')
   revalidatePath('/imoveis/alugar')
@@ -187,6 +189,7 @@ export async function geocodePropertyById(id: string): Promise<{
   await prisma.property.update({ where: { id }, data: { latitude: coords.lat, longitude: coords.lng } })
 
   revalidatePath('/')
+  invalidatePublicPropertyCache()
   revalidatePath('/imoveis')
   revalidatePath('/imoveis/comprar')
   revalidatePath('/imoveis/alugar')

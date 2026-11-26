@@ -1,7 +1,8 @@
 .header {
-  background: rgba(30, 60, 114, 0.75); /* Azul transparente */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(30, 60, 114, 0.8); /* Azul transparente */
+  /* Header fixo: blur menor reduz drasticamente o custo de repintura a cada frame de scroll */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1); /* Borda bem sutil para manter o luxo */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Sombra para separar o header da página */
   padding: 0 2rem;

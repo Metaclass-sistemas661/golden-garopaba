@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { invalidatePublicPropertyCache } from '@/lib/cacheTags'
 import { requireAdminAuth } from '@/lib/auth'
 
 export async function registerTransaction(data: {
@@ -62,6 +63,7 @@ export async function registerTransaction(data: {
     revalidatePath(`/painel/corretores/${data.brokerId}/performance`)
     revalidatePath('/painel')
     revalidatePath('/')
+    invalidatePublicPropertyCache()
     revalidatePath('/imoveis')
     revalidatePath('/imoveis/comprar')
     revalidatePath('/imoveis/alugar')

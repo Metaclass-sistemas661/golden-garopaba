@@ -16,6 +16,8 @@ import SmartImage from "@/components/common/SmartImage"
 import { formatPropertyPriceLabel, getTransactionTagLabel } from '@/utils/propertyDisplay'
 
 import { PropertyDTO } from '@/types/dto'
+// Import estático: gera blur placeholder automático e URL com hash (cache imutável)
+import heroImage from '../../../public/herosection-casa.jpeg'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -240,11 +242,13 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
         <div className={styles.videoBackground}>
           <div className={styles.videoOverlay} style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%)' }}></div>
           <Image
-            src="/herosection-casa.jpeg"
-            alt="Golden Garopaba Imóveis"
+            src={heroImage}
+            alt="Golden Imóveis Garopaba"
             fill
-            priority
-            quality={80}
+            preload
+            fetchPriority="high"
+            placeholder="blur"
+            quality={75}
             sizes="100vw"
             className={styles.heroVideo}
             style={{ objectFit: 'cover' }}
@@ -254,7 +258,7 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
         {/* Hero Content (Títulos) */}
         <div className={styles.heroContainer} style={{ position: 'relative', zIndex: 3, width: '100%', display: 'flex', justifyContent: 'center' }}>
           <div className={styles.heroContent} style={{ textAlign: 'center', color: '#fff', maxWidth: '800px', padding: '0 2rem' }}>
-            <h1 className={styles.title} style={{ fontSize: 'clamp(3rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Golden Garopaba Imóveis</h1>
+            <h1 className={styles.title} style={{ fontSize: 'clamp(3rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Golden Imóveis Garopaba</h1>
             <p className={styles.subtitle} style={{ fontSize: '1.25rem', lineHeight: 1.6, opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
               Transformamos o seu desejo em endereço. Encontre o imóvel perfeito em Garopaba com segurança, transparência e as melhores oportunidades da região.
             </p>
@@ -382,7 +386,8 @@ export default function HomeClient({ featuredProperties }: HomeClientProps) {
           <div className={styles.globalNetworkVideo}>
             <video
               ref={globeVideoRef}
-              src={shouldLoadGlobeVideo ? "/VIDEOSEÇÃO2.mp4" : undefined}
+              src={shouldLoadGlobeVideo ? "/video-secao2.mp4" : undefined}
+              poster="/video-secao2-poster.jpg"
               preload="none"
               autoPlay={shouldLoadGlobeVideo}
               loop

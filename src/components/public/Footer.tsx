@@ -50,7 +50,8 @@ export default function Footer() {
         <video
           ref={videoRef}
           className={styles.ctaVideo}
-          src={shouldLoadVideo ? "/VIDEO-CTA.mp4" : undefined}
+          src={shouldLoadVideo ? "/cta-banner.mp4" : undefined}
+          poster="/cta-banner-poster.jpg"
           preload="none"
           autoPlay={shouldLoadVideo}
           loop
@@ -92,7 +93,15 @@ export default function Footer() {
                 </li>
                 <li>
                   <span className={styles.contactLabel}>Endereço</span>
-                  <span>Av. dos Pescadores, 1000 - Centro<br/>Garopaba/SC, 88495-000</span>
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Rua+Vi%C3%BAva+Maria+Ant%C3%B4nia+dos+Santos%2C+Garopaba+-+SC"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <address style={{ fontStyle: 'normal' }}>
+                      R. Viúva Maria Antônia dos Santos, S/N – Loja 3<br />Garopaba/SC
+                    </address>
+                  </a>
                 </li>
               </ul>
             </div>

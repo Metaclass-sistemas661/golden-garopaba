@@ -97,9 +97,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://ynvcktbpbvappvcynpfe.supabase.co" />
+        {/* next/font auto-hospeda as fontes e imagens passam por /_next/image:
+            preconnects a fonts.googleapis/gstatic/supabase eram conexões desperdiçadas. */}
         <link rel="dns-prefetch" href="https://ynvcktbpbvappvcynpfe.supabase.co" />
       </head>
       <body>

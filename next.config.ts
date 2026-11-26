@@ -40,6 +40,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Mídias estáticas de /public: cache de 7 dias no navegador/CDN
+        // (o padrão do Next para /public é max-age=0, forçando revalidação a cada visita)
+        source: '/:file*(mp4|webm|jpg|jpeg|png|webp|avif|svg|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {
