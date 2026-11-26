@@ -2,7 +2,19 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { requireAdminAuth } from '@/lib/auth'
+import { requireAdminAuth, UnauthorizedError } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+
+const BROKER_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function extractAvatarStoragePath(avatarUrl: string | null): string | null {
+  if (!avatarUrl) return null
+  const marker = '/storage/v1/object/public/properties/'
+  const idx = avatarUrl.indexOf(marker)
+  if (idx === -1) return null
+  const rawPath = avatarUrl.slice(idx + marker.length).split('?')[0]
+  return rawPath ? decodeURIComponent(rawPath) : null
+}
 
 export interface BrokerPayload {
   fullName: string;
@@ -76,6 +88,7 @@ export async function saveBroker(data: BrokerPayload, isEdit: boolean, id?: stri
 
     revalidatePath('/painel/corretores')
     revalidatePath('/painel')
+    revalidatePath('/painel/imoveis')
     return { success: true }
   } catch (error: unknown) {
     const err = error as Error
@@ -85,15 +98,46 @@ export async function saveBroker(data: BrokerPayload, isEdit: boolean, id?: stri
   }
 }
 
-export async function deleteBroker(id: string) {
+export async function deleteBroker(id: string): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminAuth()
-    await prisma.broker.delete({ where: { id } })
+
+    if (!id || !BROKER_UUID_REGEX.test(id)) {
+      return { success: false, error: 'ID de corretor inválido.' }
+    }
+
+    const deleted = await prisma.broker.delete({
+      where: { id },
+      select: { id: true, avatarUrl: true },
+    })
+
+    // Limpeza best-effort da foto de perfil no Supabase Storage (não bloqueia a exclusão do banco)
+    const storagePath = extractAvatarStoragePath(deleted.avatarUrl)
+    if (storagePath && storagePath.startsWith('avatars/')) {
+      try {
+        const supabase = await createClient()
+        await supabase.storage.from('properties').remove([storagePath])
+      } catch (storageErr) {
+        console.warn('[deleteBroker] Falha ao remover avatar no Storage:', storageErr)
+      }
+    }
+
     revalidatePath('/painel/corretores')
+    revalidatePath(`/painel/corretores/editar/${id}`)
+    revalidatePath(`/painel/corretores/${id}/performance`)
+    revalidatePath('/painel/imoveis')
     revalidatePath('/painel')
     return { success: true }
-  } catch {
-    return { success: false }
+  } catch (error: unknown) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
+    const prismaCode = (error as { code?: string })?.code
+    if (prismaCode === 'P2025') {
+      return { success: false, error: 'Corretor não encontrado ou já foi excluído.' }
+    }
+    console.error('[deleteBroker] Erro ao excluir corretor:', error)
+    return { success: false, error: 'Não foi possível excluir o corretor no banco de dados.' }
   }
 }
 
@@ -109,6 +153,7 @@ export async function toggleBrokerStatus(id: string, currentStatus: string) {
       data: { status: nextStatus }
     })
     revalidatePath('/painel/corretores')
+    revalidatePath('/painel/imoveis')
     revalidatePath('/painel')
     return { success: true }
   } catch {

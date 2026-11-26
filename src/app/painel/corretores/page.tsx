@@ -5,6 +5,7 @@ import styles from './page.module.css'
 import prisma from '@/lib/prisma'
 
 import BrokerSearchInput from '@/components/admin/BrokerSearchInput'
+import DeleteBrokerButton from '@/components/admin/DeleteBrokerButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,11 @@ export default async function CorretoresPage({
         { creci: { contains: q, mode: 'insensitive' } }
       ]
     } : undefined,
+    include: {
+      _count: {
+        select: { transactions: true }
+      }
+    },
     orderBy: { createdAt: 'desc' }
   })
 
@@ -98,6 +104,12 @@ export default async function CorretoresPage({
                   <Award size={16} />
                   Ver Performance
                 </Link>
+                <DeleteBrokerButton
+                  brokerId={broker.id}
+                  brokerName={broker.displayName}
+                  creci={broker.creci}
+                  transactionCount={broker._count.transactions}
+                />
               </div>
             </div>
           ))
